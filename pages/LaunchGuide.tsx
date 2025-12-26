@@ -47,9 +47,9 @@ const LaunchGuide: React.FC<LaunchGuideProps> = ({ onBack }) => {
     {
       id: 'tos',
       title: 'تدوین قوانین و مقررات',
-      description: 'نوشتن صفحه "قوانین و مقررات" برای جلب اعتماد کاربران.',
+      description: 'صفحه قوانین و مقررات نیکجو با موفقیت تدوین و منتشر شد.',
       category: 'legal',
-      isCompleted: false
+      isCompleted: true
     }
   ]);
 

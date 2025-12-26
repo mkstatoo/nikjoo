@@ -20,6 +20,7 @@ export interface Listing {
   createdAt: string;
   condition: 'New' | 'Used - Like New' | 'Used - Good' | 'Used - Fair';
   tags: string[];
+  icon?: string;
 }
 
 export interface Category {

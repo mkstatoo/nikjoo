@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { CATEGORIES, MOCK_LISTINGS, SUB_CATEGORIES } from '../constants';
+import { CATEGORIES, MOCK_LISTINGS, SUB_CATEGORIES, CONDITION_MAP } from '../constants';
 import ListingCard from '../components/ListingCard';
 import { Listing } from '../types';
 
@@ -8,19 +8,27 @@ interface HomeProps {
   onListingClick: (id: string) => void;
   selectedLocations: string[];
   searchQuery: string;
+  bookmarkedIds?: string[];
+  onToggleBookmark?: (id: string) => void;
 }
 
 type SortOption = 'newest' | 'relevance' | 'price-low' | 'price-high';
 
-const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQuery }) => {
+const Home: React.FC<HomeProps> = ({ 
+  onListingClick, 
+  selectedLocations, 
+  searchQuery,
+  bookmarkedIds = [],
+  onToggleBookmark
+}) => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
+  const [activeCondition, setActiveCondition] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [isChanging, setIsChanging] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
 
-  // Auto-switch to relevance when searching
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
       setSortBy('relevance');
@@ -29,7 +37,6 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
     }
   }, [searchQuery]);
 
-  // Click outside to close sort menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
@@ -44,7 +51,7 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
     setIsChanging(true);
     const timer = setTimeout(() => setIsChanging(false), 300);
     return () => clearTimeout(timer);
-  }, [activeCategory, activeSubCategory, searchQuery, sortBy]);
+  }, [activeCategory, activeSubCategory, searchQuery, sortBy, activeCondition]);
 
   const calculateRelevance = (listing: Listing, query: string) => {
     const q = query.toLowerCase().trim();
@@ -56,7 +63,6 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
     else if (t.startsWith(q)) score += 50;
     else if (t.includes(q)) score += 20;
 
-    // Word based match
     const queryWords = q.split(/\s+/);
     queryWords.forEach(word => {
       if (t.includes(word)) score += 10;
@@ -69,14 +75,12 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
   const filteredListings = useMemo(() => {
     let listings = [...MOCK_LISTINGS];
     
-    // Filter by cities
     if (selectedLocations.length > 0) {
       listings = listings.filter(listing => 
         selectedLocations.some(loc => listing.location.includes(loc))
       );
     }
 
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       listings = listings.filter(listing => 
@@ -85,19 +89,20 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
       );
     }
 
-    // Filter by main category
     if (activeCategory) {
       listings = listings.filter(listing => listing.category === activeCategory);
     }
 
-    // Filter by sub-category
     if (activeSubCategory) {
       listings = listings.filter(listing => 
         listing.tags && listing.tags.includes(activeSubCategory)
       );
     }
 
-    // Sorting logic
+    if (activeCondition) {
+      listings = listings.filter(listing => listing.condition === activeCondition);
+    }
+
     listings.sort((a, b) => {
       switch (sortBy) {
         case 'relevance':
@@ -109,13 +114,12 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
           return b.price - a.price;
         case 'newest':
         default:
-          // In real app we'd use timestamps, here we use original order/id
           return b.id.localeCompare(a.id);
       }
     });
 
     return listings;
-  }, [selectedLocations, activeCategory, activeSubCategory, searchQuery, sortBy]);
+  }, [selectedLocations, activeCategory, activeSubCategory, searchQuery, sortBy, activeCondition]);
 
   const handleCategoryClick = (catName: string) => {
     if (activeCategory === catName) {
@@ -147,29 +151,26 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
 
   return (
     <div className="pb-24 bg-white min-h-screen">
-      {/* Category Header */}
       <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-500">
-        <div className="flex items-center gap-5 p-4 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-6 p-4 overflow-x-auto scrollbar-hide">
           {CATEGORIES.map(cat => (
             <div 
               key={cat.id} 
               onClick={() => handleCategoryClick(cat.name)}
-              className={`flex flex-col items-center gap-2 cursor-pointer shrink-0 transition-all duration-500 group ${activeCategory === cat.name ? 'scale-110' : 'opacity-60 hover:opacity-100 hover:scale-105'}`}
+              className={`flex flex-col items-center gap-2.5 cursor-pointer shrink-0 transition-all duration-500 group ${activeCategory === cat.name ? 'scale-105' : 'opacity-70 hover:opacity-100 hover:scale-105'}`}
             >
-              <div className={`w-16 h-16 rounded-[22px] flex items-center justify-center text-3xl transition-all duration-500 shadow-sm ${activeCategory === cat.name ? 'bg-gradient-to-br from-red-600 to-red-800 text-white shadow-xl shadow-red-200 -rotate-3' : 'bg-gray-100 text-gray-700 group-hover:bg-gray-200'}`}>
-                {cat.icon}
+              <div className={`relative w-16 h-16 rounded-[24px] flex items-center justify-center transition-all duration-500 shadow-sm ${activeCategory === cat.name ? 'bg-red-700 shadow-xl shadow-red-200 ring-4 ring-red-50' : 'bg-gray-50 border border-gray-100 group-hover:bg-gray-100'}`}>
+                <span className="text-3xl drop-shadow-md select-none transform transition-transform group-hover:scale-110">
+                  {cat.icon}
+                </span>
               </div>
-              <span className={`text-[11px] font-black whitespace-nowrap tracking-tight ${activeCategory === cat.name ? 'text-red-700' : 'text-gray-500'}`}>
+              <span className={`text-[10px] font-black whitespace-nowrap tracking-tight transition-colors duration-300 ${activeCategory === cat.name ? 'text-red-700' : 'text-gray-600'}`}>
                 {cat.name}
               </span>
-              {activeCategory === cat.name && (
-                <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></div>
-              )}
             </div>
           ))}
         </div>
 
-        {/* Sub-category bar */}
         <div className={`overflow-hidden transition-all duration-500 ease-in-out ${activeCategory ? 'max-h-24 opacity-100 border-t border-gray-50 bg-gray-50/30' : 'max-h-0 opacity-0'}`}>
           {activeCategory && SUB_CATEGORIES[activeCategory] && (
             <div className="px-4 py-3 flex items-center gap-3 overflow-x-auto scrollbar-hide">
@@ -191,9 +192,28 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
             </div>
           )}
         </div>
+
+        {/* Condition Filter Bar */}
+        <div className="px-4 py-2 border-t border-gray-50 flex items-center gap-3 overflow-x-auto scrollbar-hide bg-white">
+           <span className="text-[10px] font-black text-gray-400 whitespace-nowrap">وضعیت:</span>
+           <button 
+             onClick={() => setActiveCondition(null)}
+             className={`px-3 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap transition-all border ${activeCondition === null ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}
+           >
+             همه
+           </button>
+           {Object.keys(CONDITION_MAP).map(key => (
+             <button 
+               key={key}
+               onClick={() => setActiveCondition(activeCondition === key ? null : key)}
+               className={`px-3 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap transition-all border ${activeCondition === key ? 'bg-red-700 text-white border-red-700' : 'bg-white text-gray-500 border-gray-200'}`}
+             >
+               {CONDITION_MAP[key].label}
+             </button>
+           ))}
+        </div>
       </div>
 
-      {/* Filter status and Sorting */}
       <div className="px-6 py-4 flex justify-between items-center border-b border-gray-50 bg-white relative">
         <div className="flex flex-col text-right">
            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">در حال نمایش</span>
@@ -203,12 +223,6 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
                <>
                  <svg className="w-3 h-3 text-gray-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="3" strokeLinecap="round"/></svg>
                  <span className="text-red-700">{activeSubCategory}</span>
-               </>
-             )}
-             {searchQuery && (
-               <>
-                 <svg className="w-3 h-3 text-gray-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="3" strokeLinecap="round"/></svg>
-                 <span className="text-gray-400">جستجوی: "{searchQuery}"</span>
                </>
              )}
            </h2>
@@ -244,12 +258,17 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
         </div>
       </div>
 
-      {/* Listings List */}
       <div className={`flex flex-col transition-all duration-500 ${isChanging ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
         {filteredListings.length > 0 ? (
           <div className="grid grid-cols-1 divide-y divide-gray-50">
             {filteredListings.map(listing => (
-              <ListingCard key={listing.id} listing={listing} onClick={onListingClick} />
+              <ListingCard 
+                key={listing.id} 
+                listing={listing} 
+                onClick={onListingClick}
+                isBookmarked={bookmarkedIds.includes(listing.id)}
+                onToggleBookmark={onToggleBookmark}
+              />
             ))}
           </div>
         ) : (
@@ -263,12 +282,6 @@ const Home: React.FC<HomeProps> = ({ onListingClick, selectedLocations, searchQu
             <p className="text-xs text-gray-400 leading-7 max-w-xs font-medium">
               شاید بهتر باشد فیلترها را کمی تغییر دهید یا در دسته‌بندی دیگری جستجو کنید.
             </p>
-            <button 
-              onClick={() => { setActiveCategory(null); setActiveSubCategory(null); setSortBy('newest'); }}
-              className="mt-10 px-8 py-3 bg-red-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-red-100 active:scale-95 transition-all"
-            >
-              پاک کردن فیلترها
-            </button>
           </div>
         )}
       </div>

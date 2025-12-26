@@ -19,6 +19,7 @@ interface ProfileProps {
   onAdClick: (id: string) => void;
   onNavigateToPost: () => void;
   onNavigateToLaunch: () => void;
+  onNavigateToBookmarks: () => void;
 }
 
 const Profile: React.FC<ProfileProps> = ({ 
@@ -30,7 +31,8 @@ const Profile: React.FC<ProfileProps> = ({
   onNavigateToSupport, 
   onAdClick, 
   onNavigateToPost, 
-  onNavigateToLaunch 
+  onNavigateToLaunch,
+  onNavigateToBookmarks
 }) => {
   const [view, setView] = useState<'menu' | 'my-ads' | 'wallet'>('menu');
   const [userName, setUserName] = useState(isLoggedIn ? 'کاربر نیکجو' : 'مهمان');
@@ -150,15 +152,19 @@ const Profile: React.FC<ProfileProps> = ({
   return (
     <div className="pb-24 bg-white min-h-screen text-right" dir="rtl">
       {/* Header Section */}
-      <div className="bg-gradient-to-b from-gray-100 to-white pt-16 pb-10 px-6 border-b border-gray-100">
+      <div className="bg-gray-50 pt-16 pb-12 px-6 border-b border-gray-100 relative">
         <div className="max-w-xl mx-auto flex flex-col items-center">
           <div className="relative mb-6">
-            <div className="w-24 h-24 bg-red-100 rounded-[30px] flex items-center justify-center text-3xl shadow-lg border-4 border-white overflow-hidden">
-              <img src={MOCK_USERS[0].avatar} alt="" className="w-full h-full object-cover" />
+            <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center text-3xl shadow-2xl border-4 border-white overflow-hidden relative group">
+              <img src={isLoggedIn ? MOCK_USERS[0].avatar : 'https://picsum.photos/seed/guest/200'} alt="" className="w-full h-full object-cover" />
+              {/* Subtle Overlay Signature */}
+              <div className="absolute inset-x-0 bottom-0 bg-black/40 backdrop-blur-sm py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <p className="text-[7px] text-white font-black text-center tracking-widest uppercase italic">Free for ever</p>
+              </div>
             </div>
             {isLoggedIn && (
-              <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1.5 rounded-full border-4 border-white shadow-lg animate-bounce" title="شماره تایید شده">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1.5 rounded-full border-4 border-white shadow-lg" title="شماره تایید شده">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
             )}
           </div>
@@ -167,7 +173,7 @@ const Profile: React.FC<ProfileProps> = ({
             {!isLoggedIn ? (
               <div className="space-y-4">
                 <h1 className="text-2xl font-black text-gray-900 tracking-tighter">به نیکجو خوش آمدید</h1>
-                <p className="text-xs text-gray-500 font-medium">برای انتشار آگهی و چت با فروشندگان، وارد حساب خود شوید.</p>
+                <p className="text-xs text-gray-400 font-medium">سریع، مطمئن و <span className="text-gray-900">رایگان برای همیشه</span></p>
                 <button 
                   onClick={onLogin}
                   className="bg-red-700 text-white px-10 py-3 rounded-2xl font-black text-sm shadow-xl shadow-red-100 hover:bg-red-800 transition-all active:scale-95"
@@ -191,18 +197,16 @@ const Profile: React.FC<ProfileProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-2 mb-2">
+                  <div className="flex flex-col items-center gap-1 mb-2">
                     <h1 className="text-3xl font-black text-gray-900 tracking-tighter">{userName}</h1>
-                    <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-red-700">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic opacity-50">Free for ever</p>
                   </div>
                 )}
                 <div className="flex flex-col items-center gap-1">
                   <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">
                     شماره: {userPhone} • نیکجو پلاس
                   </p>
-                  <button onClick={onLogout} className="text-[9px] text-red-700 font-black mt-2 underline">خروج از حساب</button>
+                  <button onClick={onLogout} className="text-[9px] text-red-700 font-black mt-2 underline opacity-50 hover:opacity-100">خروج از حساب</button>
                 </div>
               </>
             )}
@@ -214,7 +218,7 @@ const Profile: React.FC<ProfileProps> = ({
       <div className="max-w-xl mx-auto py-8 px-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-             <div className="w-1.5 h-6 bg-red-700 rounded-full"></div>
+             <div className="w-1 h-6 bg-red-700 rounded-full"></div>
              <h2 className="text-lg font-black text-gray-900">آگهی‌های اخیر شما</h2>
           </div>
           <button onClick={() => setView('my-ads')} className="text-xs font-bold text-red-700 hover:underline">مشاهده همه</button>
@@ -259,6 +263,7 @@ const Profile: React.FC<ProfileProps> = ({
               if (item.id === 'about') onNavigateToAbout();
               if (item.id === 'support') onNavigateToSupport();
               if (item.id === 'launch-roadmap') onNavigateToLaunch();
+              if (item.id === 'bookmarks') onNavigateToBookmarks();
             }}
             className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors active:scale-[0.99] group"
           >
@@ -271,6 +276,12 @@ const Profile: React.FC<ProfileProps> = ({
             </svg>
           </div>
         ))}
+      </div>
+      
+      {/* Brand Watermark Footer */}
+      <div className="py-12 flex flex-col items-center gap-2 opacity-10 grayscale select-none mt-auto">
+         <p className="text-[10px] font-black tracking-[0.5em] uppercase italic">Free for ever</p>
+         <div className="w-1 h-1 bg-gray-900 rounded-full"></div>
       </div>
     </div>
   );

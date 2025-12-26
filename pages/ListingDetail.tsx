@@ -1,14 +1,58 @@
 
 import React, { useState } from 'react';
 import { Listing } from '../types';
+import { CONDITION_MAP } from '../constants';
 
 interface ListingDetailProps {
   listing: Listing;
   onBack: () => void;
   onChat: (sellerId: string) => void;
+  isBookmarked?: boolean;
+  onToggleBookmark?: () => void;
 }
 
-const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }) => {
+const ConditionBadge: React.FC<{ conditionKey: string }> = ({ conditionKey }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  const conditionInfo = CONDITION_MAP[conditionKey] || { 
+    label: conditionKey, 
+    color: 'text-gray-600 bg-gray-50', 
+    description: 'اطلاعات بیشتری درباره این وضعیت ثبت نشده است.' 
+  };
+
+  return (
+    <div className="relative">
+      <button 
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onClick={() => setShowTooltip(!showTooltip)}
+        className={`w-full p-4 rounded-2xl flex flex-col gap-1 transition-all text-right ${conditionInfo.color} border border-transparent hover:border-current focus:outline-none`}
+      >
+        <span className="text-[9px] font-black uppercase opacity-70">وضعیت کالا</span>
+        <span className="text-xs font-black flex items-center gap-1.5">
+          {conditionInfo.label}
+          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </span>
+      </button>
+      {showTooltip && (
+        <div className="absolute bottom-full right-0 mb-3 w-64 p-4 bg-gray-900 text-white text-[11px] font-medium rounded-2xl shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-300 leading-6 border border-white/10 backdrop-blur-sm">
+          <div className="absolute -bottom-1 right-6 w-3 h-3 bg-gray-900 rotate-45 border-r border-b border-white/10"></div>
+          {conditionInfo.description}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ListingDetail: React.FC<ListingDetailProps> = ({ 
+  listing, 
+  onBack, 
+  onChat, 
+  isBookmarked = false, 
+  onToggleBookmark 
+}) => {
   const [activeImage, setActiveImage] = useState(0);
   const [showToast, setShowToast] = useState(false);
 
@@ -20,18 +64,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
     return date.toLocaleDateString('fa-IR');
   };
 
-  const getConditionLabel = (condition: string) => {
-    const map: Record<string, string> = {
-      'New': 'نو',
-      'Used - Like New': 'در حد نو',
-      'Used - Good': 'کارکرده تمیز',
-      'Used - Fair': 'کارکرده معمولی'
-    };
-    return map[condition] || condition;
-  };
-
   const handleShare = async () => {
-    // ایجاد یک URL معتبر برای جلوگیری از خطای Invalid URL
     const url = window.location.href.startsWith('http') 
       ? window.location.href 
       : 'https://nikjoo.market/ad/' + listing.id;
@@ -47,7 +80,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(`${shareData.text}${url}`);
         } else {
-          // Legacy fallback for old browsers
           const textArea = document.createElement("textarea");
           textArea.value = `${shareData.text}${url}`;
           textArea.style.position = "fixed";
@@ -65,14 +97,12 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
     };
 
     try {
-      // تلاش برای استفاده از سیستم اشتراک‌گذاری بومی
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
         await copyToClipboardFallback();
       }
     } catch (err) {
-      // اگر اشتراک‌گذاری به هر دلیلی (مثل Permission یا URL) خطا داد، کپی انجام شود
       console.warn('Share API failed, using clipboard:', err);
       await copyToClipboardFallback();
     }
@@ -80,14 +110,12 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
 
   return (
     <div className="max-w-4xl mx-auto px-4 pt-6 pb-40" dir="rtl">
-      {/* پیام موقت (Toast) */}
       {showToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-gray-900 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-2xl animate-in fade-in slide-in-from-top-4 duration-300 flex items-center gap-2">
           <span>لینک آگهی کپی شد! 📋</span>
         </div>
       )}
 
-      {/* هدر بالایی */}
       <div className="flex items-center justify-between mb-6">
         <button 
           onClick={onBack}
@@ -99,6 +127,15 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
           بازگشت
         </button>
         <div className="flex gap-3">
+          <button 
+            onClick={onToggleBookmark}
+            className={`p-2.5 rounded-2xl transition-all border active:scale-95 shadow-sm ${isBookmarked ? 'bg-red-700 border-red-700 text-white' : 'bg-gray-50 border-gray-100 text-gray-500 hover:text-gray-900 hover:bg-white hover:shadow-md'}`}
+            title={isBookmarked ? "حذف از نشان‌ها" : "نشان کردن آگهی"}
+          >
+            <svg className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          </button>
           <button 
             onClick={handleShare}
             className="p-2.5 bg-gray-50 rounded-2xl text-gray-500 hover:text-gray-900 transition-all border border-gray-100 active:scale-95 hover:bg-white hover:shadow-md"
@@ -112,7 +149,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
       </div>
 
       <div className="flex flex-col gap-8">
-        {/* بخش تصاویر */}
         <div className="space-y-4">
           <div className="aspect-[4/3] rounded-[2.5rem] overflow-hidden bg-gray-100 shadow-2xl relative border-4 border-white">
             <img 
@@ -137,7 +173,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
           </div>
         </div>
 
-        {/* اطلاعات آگهی */}
         <div className="space-y-8">
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -146,7 +181,10 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
               </span>
               <span className="text-gray-400 text-[10px] font-bold">• {displayDate(listing.createdAt)}</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 leading-tight">{listing.title}</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 leading-tight">
+              {listing.icon && <span className="ml-2 text-3xl">{listing.icon}</span>}
+              {listing.title}
+            </h1>
             <p className="text-gray-500 text-sm font-bold flex items-center gap-2">
               <svg className="w-4 h-4 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -187,7 +225,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
             </p>
           </div>
 
-          {/* بخش مشخصات تکمیلی */}
           <div className="pt-6 border-t border-gray-50 space-y-6">
             <div className="flex items-center gap-2">
                <div className="w-1.5 h-5 bg-gray-900 rounded-full"></div>
@@ -195,10 +232,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-2xl flex flex-col gap-1">
-                <span className="text-[9px] text-gray-400 font-black uppercase">وضعیت</span>
-                <span className="text-xs font-black text-gray-900">{getConditionLabel(listing.condition)}</span>
-              </div>
+              <ConditionBadge conditionKey={listing.condition} />
               <div className="p-4 bg-gray-50 rounded-2xl flex flex-col gap-1">
                 <span className="text-[9px] text-gray-400 font-black uppercase">دسته‌بندی</span>
                 <span className="text-xs font-black text-gray-900">{listing.category}</span>
@@ -213,8 +247,13 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listing, onBack, onChat }
               ))}
             </div>
           </div>
+          
+          {/* Subtle Brand Signature */}
+          <div className="pt-12 flex flex-col items-center gap-2 opacity-20 select-none grayscale">
+             <div className="w-8 h-8 bg-gray-900 rounded-xl flex items-center justify-center text-white text-lg font-black">ن</div>
+             <p className="text-[8px] font-black tracking-[0.4em] uppercase italic">Free for ever</p>
+          </div>
 
-          {/* دکمه‌های عملیاتی */}
           <div className="fixed bottom-20 left-4 right-4 z-40 flex gap-4 max-w-4xl mx-auto">
             <button 
               onClick={() => onChat(listing.seller.id)}

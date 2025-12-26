@@ -6,9 +6,10 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (phone: string) => void;
+  onNavigateToLegal?: (tab: 'tos' | 'privacy') => void;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, onNavigateToLegal }) => {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -138,7 +139,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         </div>
         <div className="bg-gray-50 p-6 text-center border-t border-gray-100">
           <p className="text-[10px] text-gray-400 font-bold leading-5">
-            با ورود به نیکجو، <span className="underline">شرایط و قوانین</span> و <span className="underline">حریم خصوصی</span> آن را می‌پذیرید.
+            با ورود به نیکجو، <button onClick={() => onNavigateToLegal?.('tos')} className="text-red-700 underline">شرایط و قوانین</button> و <button onClick={() => onNavigateToLegal?.('privacy')} className="text-red-700 underline">حریم خصوصی</button> آن را می‌پذیرید.
           </p>
         </div>
       </div>
