@@ -1,14 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Always initialize GoogleGenAI with a named parameter using process.env.API_KEY.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 /**
  * AI Content Moderation
  * Flags political, military, violent, or inappropriate content.
  */
 export const moderateContent = async (text: string, imageUrl?: string) => {
   try {
+    // Initialize inside the function to ensure the latest API key is used and avoid top-level process errors.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const prompt = `Analyze this marketplace content. Return JSON only.
     Strictly flag (isSafe: false) if the content is:
     1. Highly Political or relates to government/military conflicts.
@@ -18,9 +18,10 @@ export const moderateContent = async (text: string, imageUrl?: string) => {
     
     Content to analyze: "${text}"`;
 
+    // Updated contents to use simple string format as recommended for text-only prompts in the SDK guidelines.
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -35,7 +36,7 @@ export const moderateContent = async (text: string, imageUrl?: string) => {
       }
     });
     
-    // Use .text property to access the generated content.
+    // Access .text property directly (not a method) as per SDK instructions
     const jsonStr = response.text || '{"isSafe": true}';
     return JSON.parse(jsonStr);
   } catch (error) {
@@ -46,6 +47,9 @@ export const moderateContent = async (text: string, imageUrl?: string) => {
 
 export const suggestListingOptimization = async (title: string, description: string) => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Updated call to use string contents and proper model configuration
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Suggest improvements for this marketplace listing to sell faster. Title: ${title}, Description: ${description}`,
@@ -63,7 +67,6 @@ export const suggestListingOptimization = async (title: string, description: str
         }
       }
     });
-    // Use .text property to access the generated content.
     const jsonStr = response.text || '{}';
     return JSON.parse(jsonStr);
   } catch (error) {
@@ -74,17 +77,17 @@ export const suggestListingOptimization = async (title: string, description: str
 
 export const chatWithSupport = async (userMessage: string, chatHistory: {role: string, content: string}[]) => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const chat = ai.chats.create({
       model: "gemini-3-flash-preview",
       config: {
         systemInstruction: "You are the AI support assistant for Nikjoo Marketplace. Keep responses brief and friendly. Always respond in Persian (Farsi). Always maintain platform safety."
-      },
-      // Note: History management would typically be done by passing history to create,
-      // but guidelines emphasize simple chat creation.
+      }
     });
     
+    // sendMessage handles the state internally; response.text returns the assistant's reply.
     const response = await chat.sendMessage({ message: userMessage });
-    // Directly access the text property.
     return response.text;
   } catch (error) {
     console.error("Gemini Chat Error:", error);
