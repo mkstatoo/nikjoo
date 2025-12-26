@@ -14,7 +14,7 @@ interface ChecklistItem {
 }
 
 const LaunchGuide: React.FC<LaunchGuideProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'checklist' | 'domain'>('checklist');
+  const [activeTab, setActiveTab] = useState<'checklist' | 'domain' | 'env'>('checklist');
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     {
       id: 'domain',
@@ -28,6 +28,13 @@ const LaunchGuide: React.FC<LaunchGuideProps> = ({ onBack }) => {
       title: 'استقرار در Netlify',
       description: 'پروژه با موفقیت مستقر شده است.',
       category: 'technical',
+      isCompleted: true
+    },
+    {
+      id: 'sms-verify',
+      title: 'فعال‌سازی پنل SMS.ir',
+      description: 'اتصال وب‌سرویس پیامکی برای تایید شماره موبایل کاربران.',
+      category: 'security',
       isCompleted: true
     },
     {
@@ -68,24 +75,29 @@ const LaunchGuide: React.FC<LaunchGuideProps> = ({ onBack }) => {
 
       <div className="max-w-xl mx-auto px-6 py-8">
         {/* Tab Switcher */}
-        <div className="flex bg-gray-200 p-1 rounded-2xl mb-8">
+        <div className="flex bg-gray-200 p-1 rounded-2xl mb-8 overflow-x-auto scrollbar-hide">
           <button 
             onClick={() => setActiveTab('checklist')}
-            className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${activeTab === 'checklist' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+            className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black whitespace-nowrap transition-all ${activeTab === 'checklist' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
           >
             چک‌لیست نهایی
           </button>
           <button 
+            onClick={() => setActiveTab('env')}
+            className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black whitespace-nowrap transition-all ${activeTab === 'env' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+          >
+            تنظیم کلیدها (API)
+          </button>
+          <button 
             onClick={() => setActiveTab('domain')}
-            className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${activeTab === 'domain' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+            className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black whitespace-nowrap transition-all ${activeTab === 'domain' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
           >
             تنظیم دامنه (DNS)
           </button>
         </div>
 
-        {activeTab === 'checklist' ? (
+        {activeTab === 'checklist' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Progress Card */}
             <div className="bg-[#12141d] rounded-[2.5rem] p-8 text-white shadow-2xl mb-10 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex justify-between items-end mb-4">
@@ -102,7 +114,6 @@ const LaunchGuide: React.FC<LaunchGuideProps> = ({ onBack }) => {
               </div>
             </div>
 
-            {/* Checklist */}
             <div className="space-y-4">
               {checklist.map((item) => (
                 <div 
@@ -129,67 +140,81 @@ const LaunchGuide: React.FC<LaunchGuideProps> = ({ onBack }) => {
               ))}
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'domain' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
             <div className="bg-blue-50 border border-blue-100 rounded-[2.5rem] p-8">
               <h4 className="font-black text-blue-900 text-lg mb-6 flex items-center gap-2">
                 <span className="text-2xl">🌐</span>
                 اتصال دامنه به Netlify
               </h4>
-              
               <div className="space-y-6">
                 <div>
                   <p className="text-xs text-blue-800 font-bold mb-4">مرحله ۱: افزودن دامنه در پنل هاستینگ</p>
-                  <p className="text-[11px] text-blue-700 leading-6 mb-4">
-                    وارد سایت Netlify شوید، پروژه خود را انتخاب کنید و در بخش <strong>Domain Management</strong>، روی دکمه <strong>Add custom domain</strong> کلیک کنید و آدرس خود را (مثلاً nikjoo.com) وارد کنید.
-                  </p>
+                  <p className="text-[11px] text-blue-700 leading-6 mb-4">وارد سایت Netlify شوید و در بخش Domain Management آدرس خود را وارد کنید.</p>
                 </div>
-
                 <div className="pt-6 border-t border-blue-100">
-                  <p className="text-xs text-blue-800 font-bold mb-4">مرحله ۲: تنظیم رکوردهای DNS در پنل دامنه</p>
-                  <p className="text-[11px] text-blue-700 leading-6 mb-4">
-                    وارد پنل مدیریت دامنه خود (مثل ایرنیک یا پنل شرکت ثبت‌کننده) شوید و رکوردهای زیر را تنظیم کنید:
-                  </p>
-
+                  <p className="text-xs text-blue-800 font-bold mb-4">مرحله ۲: تنظیم رکوردهای DNS</p>
                   <div className="space-y-4">
                     <div className="bg-white p-4 rounded-2xl border border-blue-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-black text-gray-400">TYPE: A Record</span>
-                        <span className="text-[10px] font-black text-blue-600">@ (Root)</span>
-                      </div>
-                      <code className="text-xs font-mono text-gray-900 block bg-gray-50 p-2 rounded-lg border border-gray-100 select-all">
-                        75.2.60.5
-                      </code>
+                      <span className="text-[10px] font-black text-gray-400 block mb-2">A Record (@)</span>
+                      <code className="text-xs font-mono text-gray-900 block bg-gray-50 p-2 rounded-lg select-all">75.2.60.5</code>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-                    <div className="bg-white p-4 rounded-2xl border border-blue-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-black text-gray-400">TYPE: CNAME</span>
-                        <span className="text-[10px] font-black text-blue-600">www</span>
-                      </div>
-                      <code className="text-xs font-mono text-gray-900 block bg-gray-50 p-2 rounded-lg border border-gray-100 select-all">
-                        nikjoo-marketplace.netlify.app
-                      </code>
+        {activeTab === 'env' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+            <div className="bg-red-50 border border-red-100 rounded-[2.5rem] p-8">
+              <h4 className="font-black text-red-900 text-lg mb-6 flex items-center gap-2">
+                <span className="text-2xl">🔑</span>
+                تنظیم کلیدهای API در Netlify
+              </h4>
+              <div className="space-y-6">
+                <p className="text-[11px] text-red-800 leading-7 font-medium">
+                  نکته مهم: نام متغیر در پنل Netlify باید دقیقاً با کدی که در برنامه نوشته شده مطابقت داشته باشد.
+                </p>
+
+                <div className="space-y-6 pt-4">
+                  {/* AI Variable */}
+                  <div className="bg-white p-5 rounded-3xl border border-red-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] font-black text-gray-400">VARIABLE NAME (برای پنل نتلیفای)</span>
+                      <span className="text-[10px] font-black text-green-600">Gemini AI</span>
+                    </div>
+                    <code className="block text-sm font-mono font-black text-red-700 bg-red-50 p-4 rounded-xl border border-red-100 mb-4 select-all">API_KEY</code>
+                    <p className="text-[10px] text-gray-500 leading-5">این متغیر برای فعال‌سازی هوش مصنوعی و بهینه‌سازی آگهی‌ها ضروری است.</p>
+                  </div>
+
+                  {/* SMS Variable */}
+                  <div className="bg-white p-5 rounded-3xl border border-blue-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] font-black text-gray-400">VARIABLE NAME (برای پنل نتلیفای)</span>
+                      <span className="text-[10px] font-black text-blue-600">SMS.ir Panel</span>
+                    </div>
+                    <code className="block text-sm font-mono font-black text-blue-700 bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4 select-all">SMS_API_KEY</code>
+                    <div className="p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+                      <p className="text-[9px] text-yellow-800 font-bold leading-5">
+                        ⚠️ توجه: در پنل نتلیفای از نام <span className="underline">SMS_API_KEY</span> استفاده کنید. کد برنامه به صورت خودکار این مقدار را به عنوان هدر <span className="italic">X-API-KEY</span> به سرور پیامک ارسال می‌کند.
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-blue-100">
-                  <p className="text-xs text-blue-800 font-bold mb-4">مرحله ۳: فعال‌سازی SSL (HTTPS)</p>
-                  <p className="text-[11px] text-blue-700 leading-6">
-                    پس از تایید رکوردها (معمولاً ۱ تا ۲۴ ساعت)، در همان بخش Domain Management در Netlify، روی <strong>Verify DNS configuration</strong> کلیک کنید تا گواهی امنیتی SSL به صورت خودکار و رایگان فعال شود.
-                  </p>
+                <div className="pt-6 border-t border-red-100">
+                  <div className="flex gap-3 bg-white/50 p-4 rounded-2xl">
+                    <span className="text-xl">🚀</span>
+                    <p className="text-[10px] text-gray-500 leading-6 font-medium">
+                      پس از وارد کردن هر دو کلید، دکمه <strong>Create variable</strong> را بزنید و سپس پروژه را یکبار <strong>Re-deploy</strong> کنید.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-100 rounded-3xl p-6">
-               <div className="flex gap-4">
-                  <span className="text-2xl">⚠️</span>
-                  <p className="text-[10px] text-yellow-800 leading-6 font-bold">
-                    نکته مهم: اگر از دامنه .ir استفاده می‌کنید، ممکن است تغییر DNS در سامانه ایرنیک تا ۲۴ ساعت زمان ببرد تا در کل اینترنت منتشر شود. صبور باشید!
-                  </p>
-               </div>
             </div>
           </div>
         )}

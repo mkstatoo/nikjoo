@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import ListingDetail from './pages/ListingDetail';
@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import About from './pages/About';
 import LocationSelector from './pages/LocationSelector';
 import LaunchGuide from './pages/LaunchGuide';
+import AuthModal from './components/AuthModal';
 import { MOCK_LISTINGS } from './constants';
 
 const App: React.FC = () => {
@@ -18,8 +19,26 @@ const App: React.FC = () => {
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [initialChatTab, setInitialChatTab] = useState<'my' | 'ai'>('my');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Auth State
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('nikjoo_logged_in') === 'true');
+  const [userPhone, setUserPhone] = useState(() => localStorage.getItem('nikjoo_user_phone') || '');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{page: string, options?: any} | null>(null);
 
-  const navigateTo = (page: string, options?: { chatTab?: 'my' | 'ai' }) => {
+  useEffect(() => {
+    localStorage.setItem('nikjoo_logged_in', isLoggedIn.toString());
+    localStorage.setItem('nikjoo_user_phone', userPhone);
+  }, [isLoggedIn, userPhone]);
+
+  const navigateTo = (page: string, options?: { chatTab?: 'my' | 'ai', forceAuth?: boolean }) => {
+    // If action requires auth and user is not logged in
+    if (options?.forceAuth && !isLoggedIn) {
+      setPendingAction({ page, options: { ...options, forceAuth: false } });
+      setShowAuthModal(true);
+      return;
+    }
+
     if (options?.chatTab) {
       setInitialChatTab(options.chatTab);
     } else {
@@ -28,6 +47,15 @@ const App: React.FC = () => {
     setCurrentPage(page);
     setSelectedListingId(null);
     window.scrollTo(0, 0);
+  };
+
+  const handleAuthSuccess = (phone: string) => {
+    setIsLoggedIn(true);
+    setUserPhone(phone);
+    if (pendingAction) {
+      navigateTo(pendingAction.page, pendingAction.options);
+      setPendingAction(null);
+    }
   };
 
   const handleListingClick = (id: string) => {
@@ -52,17 +80,21 @@ const App: React.FC = () => {
       case 'detail':
         const listing = MOCK_LISTINGS.find(l => l.id === selectedListingId);
         if (!listing) return <Home onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} />;
-        return <ListingDetail listing={listing} onBack={() => navigateTo('home')} onChat={() => navigateTo('chat')} />;
+        return <ListingDetail listing={listing} onBack={() => navigateTo('home')} onChat={() => navigateTo('chat', { forceAuth: true })} />;
       case 'post':
         return <PostAd onComplete={() => navigateTo('home')} defaultLocation={selectedLocations[0] || 'تهران'} />;
       case 'chat':
         return <Chat initialTab={initialChatTab} />;
       case 'profile':
         return <Profile 
+          isLoggedIn={isLoggedIn}
+          userPhone={userPhone}
+          onLogin={() => setShowAuthModal(true)}
+          onLogout={() => { setIsLoggedIn(false); setUserPhone(''); navigateTo('home'); }}
           onNavigateToAbout={() => navigateTo('about')} 
           onNavigateToSupport={() => navigateTo('chat', { chatTab: 'ai' })}
           onAdClick={handleListingClick}
-          onNavigateToPost={() => navigateTo('post')}
+          onNavigateToPost={() => navigateTo('post', { forceAuth: true })}
           onNavigateToLaunch={() => navigateTo('launch-roadmap')}
         />;
       case 'about':
@@ -93,6 +125,12 @@ const App: React.FC = () => {
         />
       )}
 
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => { setShowAuthModal(false); setPendingAction(null); }}
+        onSuccess={handleAuthSuccess}
+      />
+
       <main className="flex-1 overflow-x-hidden">
         {renderContent()}
       </main>
@@ -107,13 +145,13 @@ const App: React.FC = () => {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
           <span className="text-[10px] font-bold">نشان‌ها</span>
         </button>
-        <button onClick={() => navigateTo('post')} className="flex flex-col items-center gap-1 text-gray-400">
+        <button onClick={() => navigateTo('post', { forceAuth: true })} className="flex flex-col items-center gap-1 text-gray-400">
           <div className={`p-1 border-2 rounded-lg -mt-1 ${currentPage === 'post' ? 'border-red-700 text-red-700' : 'border-gray-400'}`}>
              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
           </div>
           <span className={`text-[10px] font-bold ${currentPage === 'post' ? 'text-red-700' : ''}`}>ثبت آگهی</span>
         </button>
-        <button onClick={() => navigateTo('chat')} className={`flex flex-col items-center gap-1 ${currentPage === 'chat' ? 'text-red-700' : 'text-gray-400'}`}>
+        <button onClick={() => navigateTo('chat', { forceAuth: true })} className={`flex flex-col items-center gap-1 ${currentPage === 'chat' ? 'text-red-700' : 'text-gray-400'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
           <span className="text-[10px] font-bold">چت</span>
         </button>

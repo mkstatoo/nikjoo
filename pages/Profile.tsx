@@ -10,6 +10,10 @@ interface ProfileMenuItem {
 }
 
 interface ProfileProps {
+  isLoggedIn: boolean;
+  userPhone: string;
+  onLogin: () => void;
+  onLogout: () => void;
   onNavigateToAbout: () => void;
   onNavigateToSupport: () => void;
   onAdClick: (id: string) => void;
@@ -17,9 +21,19 @@ interface ProfileProps {
   onNavigateToLaunch: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ onNavigateToAbout, onNavigateToSupport, onAdClick, onNavigateToPost, onNavigateToLaunch }) => {
+const Profile: React.FC<ProfileProps> = ({ 
+  isLoggedIn, 
+  userPhone, 
+  onLogin, 
+  onLogout, 
+  onNavigateToAbout, 
+  onNavigateToSupport, 
+  onAdClick, 
+  onNavigateToPost, 
+  onNavigateToLaunch 
+}) => {
   const [view, setView] = useState<'menu' | 'my-ads' | 'wallet'>('menu');
-  const [userName, setUserName] = useState(MOCK_USERS[0].name);
+  const [userName, setUserName] = useState(isLoggedIn ? 'کاربر نیکجو' : 'مهمان');
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(userName);
   const [myAds, setMyAds] = useState(MOCK_LISTINGS.filter(ad => ad.seller.id === MOCK_USERS[0].id));
@@ -142,34 +156,56 @@ const Profile: React.FC<ProfileProps> = ({ onNavigateToAbout, onNavigateToSuppor
             <div className="w-24 h-24 bg-red-100 rounded-[30px] flex items-center justify-center text-3xl shadow-lg border-4 border-white overflow-hidden">
               <img src={MOCK_USERS[0].avatar} alt="" className="w-full h-full object-cover" />
             </div>
-            <button className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md border border-gray-100 text-gray-400 hover:text-red-700">
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeWidth="2" /><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2" /></svg>
-            </button>
+            {isLoggedIn && (
+              <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1.5 rounded-full border-4 border-white shadow-lg animate-bounce" title="شماره تایید شده">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            )}
           </div>
 
           <div className="text-center w-full">
-            {isEditing ? (
-              <div className="flex flex-col items-center gap-3">
-                <input 
-                  autoFocus
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  className="text-2xl font-black text-center text-gray-900 border-b-2 border-red-700 outline-none bg-transparent px-2 py-1 w-full max-w-[250px]"
-                />
-                <div className="flex gap-2">
-                  <button onClick={handleSaveProfile} className="bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold">ذخیره</button>
-                  <button onClick={() => { setIsEditing(false); setTempName(userName); }} className="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold">لغو</button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <h1 className="text-3xl font-black text-gray-900 tracking-tighter">{userName}</h1>
-                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-red-700">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            {!isLoggedIn ? (
+              <div className="space-y-4">
+                <h1 className="text-2xl font-black text-gray-900 tracking-tighter">به نیکجو خوش آمدید</h1>
+                <p className="text-xs text-gray-500 font-medium">برای انتشار آگهی و چت با فروشندگان، وارد حساب خود شوید.</p>
+                <button 
+                  onClick={onLogin}
+                  className="bg-red-700 text-white px-10 py-3 rounded-2xl font-black text-sm shadow-xl shadow-red-100 hover:bg-red-800 transition-all active:scale-95"
+                >
+                  ورود / ثبت‌نام
                 </button>
               </div>
+            ) : (
+              <>
+                {isEditing ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <input 
+                      autoFocus
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      className="text-2xl font-black text-center text-gray-900 border-b-2 border-red-700 outline-none bg-transparent px-2 py-1 w-full max-w-[250px]"
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={handleSaveProfile} className="bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold">ذخیره</button>
+                      <button onClick={() => { setIsEditing(false); setTempName(userName); }} className="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold">لغو</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter">{userName}</h1>
+                    <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-red-700">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  </div>
+                )}
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">
+                    شماره: {userPhone} • نیکجو پلاس
+                  </p>
+                  <button onClick={onLogout} className="text-[9px] text-red-700 font-black mt-2 underline">خروج از حساب</button>
+                </div>
+              </>
             )}
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">تأیید شده • نیکجو پلاس</p>
           </div>
         </div>
       </div>
