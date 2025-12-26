@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CATEGORIES, SUB_CATEGORIES } from '../constants';
 import { suggestListingOptimization } from '../services/gemini';
+import { User, Listing } from '../types';
 
 const CITY_COORDS: Record<string, [number, number]> = {
   'تهران': [35.6892, 51.3890],
@@ -33,10 +34,12 @@ const InputWrapper = ({ label, children, required = false }: InputWrapperProps) 
 
 interface PostAdProps {
   onComplete: () => void;
+  onAddListing: (ad: Listing) => void;
+  currentUser: User;
   defaultLocation: string;
 }
 
-const PostAd: React.FC<PostAdProps> = ({ onComplete, defaultLocation }) => {
+const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, defaultLocation }) => {
   const [category, setCategory] = useState('');
   const [subCategory, setSubCategory] = useState('');
   const [title, setTitle] = useState('');
@@ -53,7 +56,6 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, defaultLocation }) => {
   const [attributes, setAttributes] = useState<Record<string, any>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const city = defaultLocation === 'کل ایران' ? 'تهران' : defaultLocation;
@@ -65,114 +67,17 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, defaultLocation }) => {
     setAttributes(prev => ({ ...prev, [name]: value }));
   };
 
-  const renderDynamicFields = () => {
-    if (!category) return null;
-
-    const conditionNeeded = ['وسایل نقلیه', 'کالای دیجیتال', 'خانه و آشپزخانه', 'وسایل شخصی'].includes(category);
-    const brandNeeded = ['وسایل نقلیه', 'کالای دیجیتال'].includes(category);
-
-    const commonCondition = (
-      <InputWrapper label="وضعیت کالا" required>
-        <select 
-          value={attributes.condition || ''} 
-          onChange={e => handleAttributeChange('condition', e.target.value)} 
-          className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none"
-        >
-          <option value="">انتخاب کنید</option>
-          <option value="New">نو (آکبند)</option>
-          <option value="Used - Like New">در حد نو</option>
-          <option value="Used - Good">کارکرده - تمیز</option>
-          <option value="Used - Fair">کارکرده - دارای خط و خش</option>
-        </select>
-      </InputWrapper>
-    );
-
-    const brandInput = (
-      <InputWrapper label="برند" required>
-        <input 
-          type="text" 
-          placeholder="نام برند را وارد کنید" 
-          value={attributes.brand || ''} 
-          onChange={e => handleAttributeChange('brand', e.target.value)} 
-          className="w-full bg-transparent outline-none text-sm font-bold text-gray-800" 
-        />
-      </InputWrapper>
-    );
-
-    return (
-      <div className="bg-gray-50/50 rounded-[2.5rem] p-6 sm:p-8 space-y-8 border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-500 shadow-sm">
-        <div className="flex items-center gap-3">
-           <div className="w-1.5 h-6 bg-red-700 rounded-full"></div>
-           <h3 className="text-lg font-black text-gray-900">مشخصات فنی {subCategory || category}</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-          {brandNeeded && brandInput}
-          {conditionNeeded && commonCondition}
-
-          {/* املاک */}
-          {category === 'املاک' && (
-            <>
-              <InputWrapper label="متراژ (متر)" required>
-                <input type="number" placeholder="مثلاً ۹۵" onChange={e => handleAttributeChange('area', e.target.value)} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800" />
-              </InputWrapper>
-              {subCategory !== 'زمین' && (
-                <>
-                  <InputWrapper label="تعداد اتاق">
-                    <select onChange={e => handleAttributeChange('rooms', e.target.value)} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none">
-                      <option value="0">بدون اتاق</option>
-                      <option value="1">۱</option>
-                      <option value="2">۲</option>
-                      <option value="3">۳</option>
-                      <option value="4+">۴ یا بیشتر</option>
-                    </select>
-                  </InputWrapper>
-                  <InputWrapper label="سال ساخت">
-                    <input type="number" placeholder="مثلاً ۱۴۰۰" onChange={e => handleAttributeChange('build_year', e.target.value)} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800" />
-                  </InputWrapper>
-                </>
-              )}
-            </>
-          )}
-
-          {/* استخدام و کاریابی */}
-          {category === 'استخدام و کاریابی' && (
-            <>
-              <InputWrapper label="نوع همکاری" required>
-                <select onChange={e => handleAttributeChange('job_type', e.target.value)} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none">
-                  <option value="full_time">تمام وقت</option>
-                  <option value="part_time">پاره وقت</option>
-                  <option value="remote">دورکاری</option>
-                  <option value="project">پروژه‌ای</option>
-                </select>
-              </InputWrapper>
-              <InputWrapper label="حقوق پیشنهادی">
-                <select onChange={e => handleAttributeChange('salary', e.target.value)} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none">
-                  <option value="ministry">حقوق وزارت کار</option>
-                  <option value="10-15">۱۰ تا ۱۵ میلیون</option>
-                  <option value="negotiable">توافقی</option>
-                </select>
-              </InputWrapper>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
+      // In real app, we'd upload to a server. Here we use object URLs.
       const newImages = Array.from(files).map((file: File) => URL.createObjectURL(file));
       setImages(prev => [...prev, ...newImages].slice(0, 10));
     }
   };
 
   const handleAiOptimize = async () => {
-    if (!title) {
-      alert("لطفاً ابتدا عنوانی وارد کنید.");
-      return;
-    }
+    if (!title) return;
     setIsOptimizing(true);
     const result = await suggestListingOptimization(title, description);
     if (result) {
@@ -184,15 +89,28 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, defaultLocation }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!latLng) {
-      alert("لطفاً موقعیت آگهی را روی نقشه مشخص کنید.");
-      return;
-    }
     if (!category || !subCategory || !title || !price) {
-      alert("لطفاً فیلدهای ضروری را تکمیل کنید.");
+      alert("لطفاً تمام فیلدهای ضروری را تکمیل کنید.");
       return;
     }
-    alert("آگهی شما با موفقیت ثبت شد.");
+
+    const newAd: Listing = {
+      id: 'l' + Date.now(),
+      title,
+      description,
+      price: Number(price),
+      currency: 'تومان',
+      category,
+      location: `ایران، ${locationName}`,
+      images: images.length > 0 ? images : ['https://picsum.photos/seed/placeholder/400/300'],
+      seller: currentUser,
+      createdAt: 'لحظاتی پیش',
+      condition: attributes.condition || 'Used - Good',
+      tags: [subCategory, ...(attributes.brand ? [attributes.brand] : [])]
+    };
+
+    onAddListing(newAd);
+    alert("آگهی شما با موفقیت ثبت شد و در لیست آگهی‌ها قرار گرفت.");
     onComplete();
   };
 
@@ -216,47 +134,34 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, defaultLocation }) => {
               <h2 className="text-lg font-black text-gray-900">دسته‌بندی و محل</h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-2">
-              <div className="relative border-b border-gray-100 py-3">
-                <label className="block text-[10px] font-black text-gray-400 mb-1">دسته اصلی *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <InputWrapper label="دسته اصلی" required>
                 <select value={category} onChange={(e) => { setCategory(e.target.value); setSubCategory(''); }} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none">
                   <option value="">انتخاب کنید</option>
                   {CATEGORIES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
-              </div>
+              </InputWrapper>
 
               {category && (
-                <div className="relative border-b border-gray-100 py-3 animate-in fade-in duration-300">
-                  <label className="block text-[10px] font-black text-gray-400 mb-1">زیردسته *</label>
+                <InputWrapper label="زیردسته" required>
                   <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none">
                     <option value="">انتخاب کنید</option>
                     {SUB_CATEGORIES[category]?.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                </div>
+                </InputWrapper>
               )}
             </div>
 
-            <div 
-              onClick={() => setShowMapModal(true)}
-              className="mx-2 mt-4 p-5 rounded-3xl bg-gray-50 border border-gray-100 group cursor-pointer hover:border-red-400 transition-all active:scale-[0.98]"
-            >
-              <div className="flex items-center justify-between mb-3">
-                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">موقعیت روی نقشه *</label>
-                 {latLng && <span className="text-[10px] text-green-600 bg-green-50 px-2 py-1 rounded-full font-black">✓ ثبت شد</span>}
-              </div>
+            <div onClick={() => setShowMapModal(true)} className="p-5 rounded-3xl bg-gray-50 border border-gray-100 cursor-pointer hover:border-red-400 transition-all">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-red-700">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" strokeWidth="2"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2"/></svg>
-                 </div>
+                 <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-red-700">📍</div>
                  <div className="flex-1">
                     <p className="text-sm font-black text-gray-900">{locationName}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">{latLng ? 'موقعیت جغرافیایی تأیید شد' : 'برای تعیین نقطه دقیق کلیک کنید'}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">تغییر موقعیت روی نقشه</p>
                  </div>
               </div>
             </div>
           </div>
-
-          {renderDynamicFields()}
 
           <div className="space-y-8">
              <div className="flex items-center gap-3 mb-2">
@@ -264,99 +169,76 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, defaultLocation }) => {
               <h2 className="text-lg font-black text-gray-900">محتوای آگهی</h2>
              </div>
 
-             <div className="relative border-b border-gray-100 py-3">
-                <label className="block text-[10px] font-black text-gray-400 mb-1">عنوان آگهی *</label>
-                <input ref={titleInputRef} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً: آیفون ۱۵ پرومکس سلامت باتری ۱۰۰" className="w-full bg-transparent outline-none text-sm font-black text-gray-900 mt-2" />
-             </div>
+             <InputWrapper label="عنوان آگهی" required>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً: آیفون ۱۵ پرومکس سلامت باتری ۱۰۰" className="w-full bg-transparent outline-none text-sm font-black text-gray-900" />
+             </InputWrapper>
              
-             <div className="relative border border-gray-100 rounded-2xl px-5 py-4 bg-gray-50/20">
-                <label className="block text-[10px] font-black text-red-700 mb-1">قیمت (تومان) *</label>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="عدد وارد کنید" className="w-full bg-transparent outline-none text-lg font-black text-gray-900" />
+             <div className="bg-gray-50 border-2 border-gray-100 rounded-3xl p-5 focus-within:border-red-600 transition-all">
+                <label className="block text-[10px] font-black text-red-700 mb-2 uppercase">قیمت (تومان) *</label>
+                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="عدد وارد کنید" className="w-full bg-transparent outline-none text-2xl font-black text-gray-900" />
              </div>
 
-             <div className="relative border-b border-gray-100 py-3">
-                <label className="block text-[10px] font-black text-gray-400 mb-1">توضیحات</label>
+             <InputWrapper label="توضیحات">
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} placeholder="ویژگی‌های کالا..." className="w-full bg-transparent outline-none text-sm font-medium text-gray-700 mt-2 resize-none leading-7" />
-             </div>
+             </InputWrapper>
 
              <div className="space-y-4">
                 <label className="text-sm font-black text-gray-900">تصاویر آگهی ({images.length}/۱۰)</label>
                 <div className="flex flex-wrap gap-4">
                   {images.map((img, idx) => (
-                    <div key={idx} className="w-24 h-24 rounded-2xl overflow-hidden relative shadow-sm border border-gray-100">
+                    <div key={idx} className="w-24 h-24 rounded-2xl overflow-hidden relative border border-gray-100 group">
                       <img src={img} className="w-full h-full object-cover" alt="" />
+                      <button onClick={() => setImages(images.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-red-700 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth="3"/></svg>
+                      </button>
                     </div>
                   ))}
                   <button onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 hover:border-red-700 transition-all">
-                    <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2.5" strokeLinecap="round"/></svg>
+                    <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2.5"/></svg>
                   </button>
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} hidden multiple accept="image/*" />
                 </div>
              </div>
           </div>
 
-          <button onClick={handleSubmit} className="w-full bg-red-700 hover:bg-red-800 text-white font-black py-5 rounded-[2.5rem] shadow-2xl transition-all active:scale-[0.98] text-lg">
+          <button onClick={handleSubmit} className="w-full bg-red-700 text-white font-black py-5 rounded-[2.5rem] shadow-2xl active:scale-95 transition-all text-lg">
             انتشار آگهی
           </button>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-[#12141d] p-8 rounded-[3.5rem] text-white shadow-2xl sticky top-24 overflow-hidden border border-white/5">
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl border border-white/10 shadow-inner">✨</div>
-                <h3 className="font-black text-lg">ارتقا با AI</h3>
-              </div>
-              <button 
-                onClick={handleAiOptimize} 
-                disabled={isOptimizing || !title} 
-                className="w-full bg-red-700 hover:bg-red-600 text-white font-black py-4 rounded-2xl shadow-xl disabled:opacity-50 transition-colors"
-              >
-                {isOptimizing ? 'در حال تحلیل...' : 'بهینه‌سازی محتوا'}
-              </button>
-              <p className="mt-8 text-[11px] text-gray-400 leading-6">
-                هوش مصنوعی نیکجو متن شما را بررسی کرده و بهترین عنوان و توضیحات را برای جذب مشتری پیشنهاد می‌دهد.
-              </p>
-            </div>
+        <div className="hidden md:block">
+          <div className="bg-[#12141d] p-8 rounded-[3.5rem] text-white shadow-2xl sticky top-24">
+             <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center text-xl">✨</div>
+                <h3 className="font-black text-lg">دستیار هوشمند</h3>
+             </div>
+             <p className="text-[11px] text-gray-400 leading-6 mb-8">
+                نیکجو با استفاده از هوش مصنوعی آگهی شما را تحلیل کرده و پیشنهاداتی برای فروش سریع‌تر ارائه می‌دهد.
+             </p>
+             <button onClick={handleAiOptimize} disabled={isOptimizing || !title} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl disabled:opacity-50">
+                {isOptimizing ? 'در حال تحلیل...' : 'بهینه‌سازی با AI'}
+             </button>
           </div>
         </div>
       </div>
 
       {showMapModal && (
-        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-0 sm:p-8 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-4xl rounded-none sm:rounded-[3.5rem] h-full sm:h-[85vh] flex flex-col overflow-hidden relative shadow-2xl">
-            <div className="absolute top-6 left-6 right-6 z-10 flex justify-between items-center pointer-events-none">
-               <button onClick={() => setShowMapModal(false)} className="pointer-events-auto w-12 h-12 bg-white/90 backdrop-blur rounded-2xl shadow-2xl flex items-center justify-center text-gray-900">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth="2.5" strokeLinecap="round"/></svg>
-               </button>
-            </div>
-            <div className="flex-1 relative bg-gray-100">
-              <iframe 
-                width="100%" 
-                height="100%" 
-                frameBorder="0" 
-                scrolling="no" 
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCenter[1]-0.01},${mapCenter[0]-0.01},${mapCenter[1]+0.01},${mapCenter[0]+0.01}&layer=mapnik&marker=${mapCenter[0]},${mapCenter[1]}`}
-                className="w-full h-full grayscale opacity-80"
-              />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="flex flex-col items-center -mt-10">
-                   <div className="bg-gray-900 text-white text-[9px] font-black px-4 py-2 rounded-full mb-3 shadow-2xl animate-bounce">نقطه آگهی</div>
-                   <div className="w-10 h-10 bg-red-700 rounded-full shadow-[0_0_30px_rgba(185,28,28,0.5)] flex items-center justify-center border-4 border-white">
-                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                   </div>
-                </div>
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+           <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden flex flex-col h-[70vh]">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                 <h3 className="font-black">تعیین موقعیت روی نقشه</h3>
+                 <button onClick={() => setShowMapModal(false)}>بستن</button>
               </div>
-            </div>
-            <div className="p-8 bg-white border-t border-gray-100">
-               <button 
-                  onClick={() => { setLatLng({lat: mapCenter[0], lng: mapCenter[1]}); setShowMapModal(false); }}
-                  className="w-full bg-red-700 text-white font-black py-5 rounded-[2.5rem] text-lg shadow-2xl active:scale-95 transition-all hover:bg-red-800"
-               >
-                  تأیید موقعیت مکانی
-               </button>
-            </div>
-          </div>
+              <div className="flex-1 bg-gray-100 relative">
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-8 h-8 bg-red-700 rounded-full border-4 border-white shadow-xl"></div>
+                 </div>
+                 <p className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-gray-400">شبیه‌ساز نقشه: مرکز تصویر موقعیت آگهی است.</p>
+              </div>
+              <div className="p-6">
+                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl">تایید این موقعیت</button>
+              </div>
+           </div>
         </div>
       )}
     </div>

@@ -5,6 +5,8 @@ export interface User {
   avatar: string;
   joinedDate: string;
   rating: number;
+  role?: 'admin' | 'user';
+  phone?: string;
 }
 
 export interface Listing {
@@ -21,6 +23,17 @@ export interface Listing {
   condition: 'New' | 'Used - Like New' | 'Used - Good' | 'Used - Fair';
   tags: string[];
   icon?: string;
+  isModerated?: boolean;
+}
+
+export interface Banner {
+  id: string;
+  name: string; // نام داخلی بنر
+  title: string; // متن روی بنر
+  imageUrl: string;
+  link: string;
+  position: number;
+  price: number; // قیمت اجاره بنر
 }
 
 export interface Category {
@@ -34,6 +47,7 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: string;
+  isDeleted?: boolean;
 }
 
 export interface ChatSession {
