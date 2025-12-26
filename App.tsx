@@ -8,6 +8,7 @@ import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import About from './pages/About';
 import LocationSelector from './pages/LocationSelector';
+import LaunchGuide from './pages/LaunchGuide';
 import { MOCK_LISTINGS } from './constants';
 
 const App: React.FC = () => {
@@ -62,9 +63,12 @@ const App: React.FC = () => {
           onNavigateToSupport={() => navigateTo('chat', { chatTab: 'ai' })}
           onAdClick={handleListingClick}
           onNavigateToPost={() => navigateTo('post')}
+          onNavigateToLaunch={() => navigateTo('launch-roadmap')}
         />;
       case 'about':
         return <About onBack={() => navigateTo('profile')} />;
+      case 'launch-roadmap':
+        return <LaunchGuide onBack={() => navigateTo('profile')} />;
       default:
         return <Home onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} />;
     }
@@ -113,7 +117,7 @@ const App: React.FC = () => {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
           <span className="text-[10px] font-bold">چت</span>
         </button>
-        <button onClick={() => navigateTo('profile')} className={`flex flex-col items-center gap-1 ${['profile', 'about'].includes(currentPage) ? 'text-red-700' : 'text-gray-400'}`}>
+        <button onClick={() => navigateTo('profile')} className={`flex flex-col items-center gap-1 ${['profile', 'about', 'launch-roadmap'].includes(currentPage) ? 'text-red-700' : 'text-gray-400'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           <span className="text-[10px] font-bold">حساب من</span>
         </button>

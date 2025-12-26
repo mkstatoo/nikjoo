@@ -59,11 +59,17 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my' }) => {
   const [activeTab, setActiveTab] = useState<'my' | 'ai'>(initialTab);
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
   
-  // AI Chat State with persistence
+  // AI Chat State with persistence and error handling
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem(AI_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem(AI_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error parsing AI chat history:", e);
+      return [];
+    }
   });
+  
   const [aiInputValue, setAiInputValue] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
   
@@ -75,7 +81,11 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my' }) => {
 
   // Synchronize AI messages with localStorage
   useEffect(() => {
-    localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(aiMessages));
+    try {
+      localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(aiMessages));
+    } catch (e) {
+      console.error("Error saving AI chat history:", e);
+    }
   }, [aiMessages]);
 
   useEffect(() => {
@@ -88,9 +98,7 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my' }) => {
     }
   };
 
-  // Trigger scroll on any message or typing status change
   useEffect(() => {
-    // Small delay to ensure DOM has updated after state change
     const timer = setTimeout(scrollToBottom, 100);
     return () => clearTimeout(timer);
   }, [aiMessages, isAiTyping, selectedChat?.messages, isOtherTyping, activeTab, selectedChat]);
@@ -140,7 +148,6 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my' }) => {
 
     setSelectedChat(prev => prev ? { ...prev, messages: [...prev.messages, newMsg] } : null);
     
-    // Simulate other user reply
     setTimeout(() => {
       setIsOtherTyping(true);
       setTimeout(() => {
@@ -245,19 +252,10 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my' }) => {
                   </div>
                 </div>
               ))}
-              {MOCK_CHATS.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-40 px-10 text-center opacity-40">
-                  <div className="text-6xl mb-6 grayscale">💬</div>
-                  <p className="text-sm font-black text-gray-900">هنوز پیامی ندارید</p>
-                </div>
-              )}
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide">
-                <div className="text-center py-2 mb-4">
-                  <span className="bg-gray-200/50 text-[9px] text-gray-500 px-3 py-1 rounded-full font-black">شروع گفتگو</span>
-                </div>
                 {selectedChat.messages.map(msg => (
                   <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                     <div className={`max-w-[85%] px-5 py-3.5 rounded-3xl text-sm leading-7 shadow-sm transition-all ${
@@ -281,7 +279,7 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my' }) => {
                 )}
                 <div ref={messagesEndRef} className="h-4" />
               </div>
-              <div className="p-4 bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+              <div className="p-4 bg-white border-t border-gray-100">
                 <div className="flex gap-2 bg-gray-100 rounded-[2rem] p-1.5 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                   <input 
                     value={userInputValue} 
@@ -308,10 +306,6 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my' }) => {
                   <div className="w-24 h-24 bg-red-100/50 rounded-[2.5rem] mx-auto mb-8 flex items-center justify-center text-5xl shadow-inner border-4 border-white">🤖</div>
                   <h3 className="text-gray-900 font-black text-xl mb-3 tracking-tighter">نیاز به راهنمایی داری؟</h3>
                   <p className="text-xs leading-7 font-medium text-gray-500 max-w-[200px]">من دستیار هوشمند نیکجو هستم. هر سوالی داری بپرس تا کمکت کنم!</p>
-                  <div className="mt-8 grid grid-cols-1 gap-3 w-full max-w-[220px]">
-                    <button onClick={() => { setAiInputValue('چطور آگهی ثبت کنم؟'); }} className="text-[10px] font-black p-3 bg-white border border-red-50 rounded-2xl text-red-700 hover:bg-red-50 transition-colors shadow-sm">چطور آگهی ثبت کنم؟</button>
-                    <button onClick={() => { setAiInputValue('امنیت معامله چطور است؟'); }} className="text-[10px] font-black p-3 bg-white border border-red-50 rounded-2xl text-red-700 hover:bg-red-50 transition-colors shadow-sm">امنیت معامله چطور است؟</button>
-                  </div>
                 </div>
               ) : (
                 <>

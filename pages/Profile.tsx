@@ -14,16 +14,22 @@ interface ProfileProps {
   onNavigateToSupport: () => void;
   onAdClick: (id: string) => void;
   onNavigateToPost: () => void;
+  onNavigateToLaunch: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ onNavigateToAbout, onNavigateToSupport, onAdClick, onNavigateToPost }) => {
-  const [view, setView] = useState<'menu' | 'my-ads'>('menu');
+const Profile: React.FC<ProfileProps> = ({ onNavigateToAbout, onNavigateToSupport, onAdClick, onNavigateToPost, onNavigateToLaunch }) => {
+  const [view, setView] = useState<'menu' | 'my-ads' | 'wallet'>('menu');
   const [userName, setUserName] = useState(MOCK_USERS[0].name);
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(userName);
   const [myAds, setMyAds] = useState(MOCK_LISTINGS.filter(ad => ad.seller.id === MOCK_USERS[0].id));
 
   const menuItems: ProfileMenuItem[] = [
+    { 
+      id: 'launch-roadmap', 
+      title: 'نقشه راه انتشار (چک‌لیست)', 
+      icon: <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> 
+    },
     { 
       id: 'my-ads', 
       title: 'مدیریت تمام آگهی‌ها', 
@@ -63,6 +69,34 @@ const Profile: React.FC<ProfileProps> = ({ onNavigateToAbout, onNavigateToSuppor
       alert("آگهی با موفقیت حذف شد.");
     }
   };
+
+  if (view === 'wallet') {
+    return (
+      <div className="pb-24 bg-white min-h-screen text-right" dir="rtl">
+        <div className="p-4 flex items-center gap-3 border-b border-gray-100 bg-gray-50/50 sticky top-0 z-10">
+          <button onClick={() => setView('menu')} className="p-1 hover:bg-white rounded-full transition-colors">
+            <svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="2" strokeLinecap="round"/></svg>
+          </button>
+          <h2 className="text-lg font-black text-gray-900">کیف پول و پرداخت‌ها</h2>
+        </div>
+        <div className="flex flex-col items-center justify-center py-32 px-10 text-center animate-in fade-in zoom-in duration-500">
+           <div className="w-24 h-24 bg-blue-50 rounded-[40px] flex items-center justify-center mb-8 shadow-inner border-4 border-white rotate-3">
+              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+           </div>
+           <h3 className="text-xl font-black text-gray-900 mb-3 tracking-tighter">بخش مالی در حال آماده‌سازی است</h3>
+           <p className="text-xs text-gray-400 leading-7 max-w-xs font-medium">
+             این ویژگی به زودی فعال خواهد شد. شما قادر خواهید بود تمامی تراکنش‌ها، خرید بسته‌های آگهی و مدیریت دارایی‌های خود را مستقیماً در <span className="text-red-700 font-black">نیکجو</span> انجام دهید.
+           </p>
+           <button 
+             onClick={() => setView('menu')}
+             className="mt-10 px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-sm shadow-xl transition-all active:scale-95"
+           >
+             فهمیدم، بازگشت
+           </button>
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'my-ads') {
     return (
@@ -185,14 +219,16 @@ const Profile: React.FC<ProfileProps> = ({ onNavigateToAbout, onNavigateToSuppor
             key={item.id} 
             onClick={() => {
               if (item.id === 'my-ads') setView('my-ads');
+              if (item.id === 'wallet') setView('wallet');
               if (item.id === 'about') onNavigateToAbout();
               if (item.id === 'support') onNavigateToSupport();
+              if (item.id === 'launch-roadmap') onNavigateToLaunch();
             }}
             className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors active:scale-[0.99] group"
           >
             <div className="flex items-center gap-4">
               <span className="shrink-0 transition-colors group-hover:text-red-700">{item.icon}</span>
-              <span className="text-sm font-bold text-gray-800">{item.title}</span>
+              <span className={`text-sm font-bold ${item.id === 'launch-roadmap' ? 'text-red-700' : 'text-gray-800'}`}>{item.title}</span>
             </div>
             <svg className="w-4 h-4 text-gray-300 group-hover:text-red-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
