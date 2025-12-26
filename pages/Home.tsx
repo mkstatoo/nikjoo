@@ -157,14 +157,22 @@ const Home: React.FC<HomeProps> = ({
             <div 
               key={cat.id} 
               onClick={() => handleCategoryClick(cat.name)}
-              className={`flex flex-col items-center gap-2.5 cursor-pointer shrink-0 transition-all duration-500 group ${activeCategory === cat.name ? 'scale-105' : 'opacity-70 hover:opacity-100 hover:scale-105'}`}
+              className={`flex flex-col items-center gap-3 cursor-pointer shrink-0 transition-all duration-500 group ${activeCategory === cat.name ? 'scale-110' : 'opacity-80 hover:opacity-100 hover:scale-105'}`}
             >
-              <div className={`relative w-16 h-16 rounded-[24px] flex items-center justify-center transition-all duration-500 shadow-sm ${activeCategory === cat.name ? 'bg-red-700 shadow-xl shadow-red-200 ring-4 ring-red-50' : 'bg-gray-50 border border-gray-100 group-hover:bg-gray-100'}`}>
-                <span className="text-3xl drop-shadow-md select-none transform transition-transform group-hover:scale-110">
+              <div className={`relative w-16 h-16 rounded-[28px] flex items-center justify-center transition-all duration-500 shadow-sm border ${
+                activeCategory === cat.name 
+                  ? 'bg-gradient-to-br from-red-600 to-red-800 border-red-500 shadow-xl shadow-red-200 ring-4 ring-red-50' 
+                  : 'bg-white border-gray-100 group-hover:bg-gray-50'
+              }`}>
+                <span className={`text-3xl select-none transform transition-transform group-hover:scale-110 ${activeCategory === cat.name ? 'drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]' : 'drop-shadow-sm filter grayscale-[0.2]'}`}>
                   {cat.icon}
                 </span>
+                
+                {activeCategory === cat.name && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-red-700 animate-pulse"></div>
+                )}
               </div>
-              <span className={`text-[10px] font-black whitespace-nowrap tracking-tight transition-colors duration-300 ${activeCategory === cat.name ? 'text-red-700' : 'text-gray-600'}`}>
+              <span className={`text-[10px] font-black whitespace-nowrap tracking-tight transition-colors duration-300 ${activeCategory === cat.name ? 'text-red-800' : 'text-gray-500'}`}>
                 {cat.name}
               </span>
             </div>

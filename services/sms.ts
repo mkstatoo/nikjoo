@@ -6,7 +6,7 @@
 
 const SMS_API_URL = 'https://api.sms.ir/v1';
 
-// In a real app, this would be an environment variable
+// استفاده از نام متغیر SMS_API_KEY طبق درخواست کاربر
 const getSmsApiKey = () => {
   return typeof process !== 'undefined' ? process.env.SMS_API_KEY || 'your_sms_ir_api_key' : 'mock_key';
 };
@@ -21,10 +21,8 @@ export interface SmsResponse<T> {
  * Sends a verification code (OTP) to the user's phone number.
  */
 export const sendVerificationCode = async (mobile: string): Promise<boolean> => {
-  console.log(`[SMS.ir] Sending OTP to ${mobile}...`);
+  console.log(`[SMS.ir] Sending OTP to ${mobile} using key: ${getSmsApiKey().substring(0, 5)}...`);
   
-  // Mocking the API call for demonstration, but following the documented structure
-  // In production, this would use fetch with the X-API-KEY header
   try {
     /* 
     const response = await fetch(`${SMS_API_URL}/send/verify`, {

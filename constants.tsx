@@ -50,16 +50,16 @@ export const MOCK_USERS: User[] = [
 ];
 
 export const CATEGORIES: Category[] = [
-  { id: 'cat1', name: 'املاک', icon: '🏠' },
-  { id: 'cat2', name: 'وسایل نقلیه', icon: '🚗' },
-  { id: 'cat3', name: 'کالای دیجیتال', icon: '📱' },
+  { id: 'cat1', name: 'املاک', icon: '🏡' },
+  { id: 'cat2', name: 'وسایل نقلیه', icon: '🏎️' },
+  { id: 'cat3', name: 'کالای دیجیتال', icon: '💻' },
   { id: 'cat4', name: 'خانه و آشپزخانه', icon: '🛋️' },
-  { id: 'cat5', name: 'خدمات', icon: '🛠️' },
-  { id: 'cat6', name: 'وسایل شخصی', icon: '⌚' },
-  { id: 'cat7', name: 'سرگرمی و فراغت', icon: '🎮' },
+  { id: 'cat5', name: 'خدمات', icon: '👨‍🔧' },
+  { id: 'cat6', name: 'وسایل شخصی', icon: '👔' },
+  { id: 'cat7', name: 'سرگرمی و فراغت', icon: '🎯' },
   { id: 'cat8', name: 'اجتماعی', icon: '🤝' },
-  { id: 'cat9', name: 'تجهیزات و صنعتی', icon: '🏗️' },
-  { id: 'cat10', name: 'استخدام و کاریابی', icon: '💼' },
+  { id: 'cat9', name: 'تجهیزات و صنعتی', icon: '⚙️' },
+  { id: 'cat10', name: 'استخدام و کاریابی', icon: '📈' },
 ];
 
 export const SUB_CATEGORIES: Record<string, string[]> = {
