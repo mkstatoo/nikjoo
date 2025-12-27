@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { CATEGORIES, SUB_CATEGORIES } from '../constants';
 import { suggestListingOptimization, moderateContent } from '../services/gemini';
@@ -10,7 +11,7 @@ interface InputWrapperProps {
 }
 
 const InputWrapper = ({ label, children, required = false }: InputWrapperProps) => (
-  <div className="relative border-b border-gray-100 py-3 group focus-within:border-red-600 transition-all text-right">
+  <div className="relative border-b border-gray-100 py-3 group focus-within:border-red-600 transition-all">
     <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase tracking-tighter">
       {label} {required && <span className="text-red-600">*</span>}
     </label>
@@ -32,8 +33,8 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   
-  // Anti-Bot & Security States
-  const [hpValue, setHpValue] = useState(''); 
+  // Anti-Bot States
+  const [hpValue, setHpValue] = useState(''); // Honeypot
   const [formStartTime] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,27 +68,30 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Honeypot check
-    if (hpValue) return;
+    // 1. Honeypot check
+    if (hpValue) {
+      console.warn("Bot detected via Honeypot");
+      return;
+    }
 
-    // Submission timing check (Human buffer)
+    // 2. Submission timing check
     const timeTaken = (Date.now() - formStartTime) / 1000;
-    if (timeTaken < 5) {
-      alert("سیستم امنیتی: لطفاً فرم را با دقت بیشتری تکمیل کنید.");
+    if (timeTaken < 4) {
+      alert("سیستم امنیتی: لطفاً فرم را با دقت بیشتری پر کنید (ثبت خیلی سریع مجاز نیست).");
       return;
     }
 
     if (!category || !subCategory || !title || !price) {
-      alert("لطفاً تمام فیلدهای ضروری (*) را تکمیل کنید.");
+      alert("لطفاً تمام فیلدهای ضروری را تکمیل کنید.");
       return;
     }
 
     setIsSubmitting(true);
 
-    // AI Content Moderation
+    // 3. AI Security & Spam Check
     const modResult = await moderateContent(`${title} ${description}`);
-    if (!modResult.isSafe) {
-      alert(`⚠️ محتوای آگهی تایید نشد: ${modResult.reason}`);
+    if (!modResult.isSafe || modResult.isBotLikely) {
+      alert(`⚠️ متاسفانه آگهی شما توسط سیستم امنیتی رد شد.\nعلت: ${modResult.reason || 'محتوای مشکوک یا رباتیک'}`);
       setIsSubmitting(false);
       return;
     }
@@ -103,20 +107,26 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
       images: images.length > 0 ? images : ['https://picsum.photos/seed/placeholder/400/300'],
       seller: currentUser,
       createdAt: 'لحظاتی پیش',
-      condition: 'Used - Good',
-      tags: [subCategory]
+      condition: attributes.condition || 'Used - Good',
+      tags: [subCategory, ...(attributes.brand ? [attributes.brand] : [])]
     };
 
     onAddListing(newAd);
-    alert("آگهی شما با موفقیت ثبت و منتشر شد.");
+    alert("آگهی شما با موفقیت ثبت شد و در صف انتشار قرار گرفت.");
     onComplete();
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32" dir="rtl">
-      {/* Honeypot field for bots */}
+      {/* Honeypot field (hidden from humans) */}
       <div className="opacity-0 absolute -z-50 pointer-events-none h-0 w-0 overflow-hidden">
-        <input type="text" value={hpValue} onChange={(e) => setHpValue(e.target.value)} tabIndex={-1} autoComplete="off" />
+        <input 
+          type="text" 
+          value={hpValue} 
+          onChange={(e) => setHpValue(e.target.value)} 
+          tabIndex={-1} 
+          autoComplete="off" 
+        />
       </div>
 
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
@@ -159,33 +169,33 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-red-700">📍</div>
                  <div className="flex-1">
                     <p className="text-sm font-black text-gray-900">{locationName}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">تغییر موقعیت روی نقشه هوشمند</p>
+                    <p className="text-[10px] text-gray-400 mt-1">تغییر موقعیت روی نقشه</p>
                  </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-8 text-right">
+          <div className="space-y-8">
              <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-2xl bg-red-50 flex items-center justify-center text-red-700 text-xs font-black">۲</div>
               <h2 className="text-lg font-black text-gray-900">محتوای آگهی</h2>
              </div>
 
              <InputWrapper label="عنوان آگهی" required>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً: سامسونگ S23 Ultra در حد نو" className="w-full bg-transparent outline-none text-sm font-black text-gray-900 text-right" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً: آیفون ۱۵ پرومکس سلامت باتری ۱۰۰" className="w-full bg-transparent outline-none text-sm font-black text-gray-900" />
              </InputWrapper>
              
              <div className="bg-gray-50 border-2 border-gray-100 rounded-3xl p-5 focus-within:border-red-600 transition-all">
-                <label className="block text-[10px] font-black text-red-700 mb-2 uppercase text-right">قیمت نهایی (تومان) *</label>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="مبلغ را به عدد وارد کنید" className="w-full bg-transparent outline-none text-2xl font-black text-gray-900 text-right" />
+                <label className="block text-[10px] font-black text-red-700 mb-2 uppercase">قیمت (تومان) *</label>
+                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="عدد وارد کنید" className="w-full bg-transparent outline-none text-2xl font-black text-gray-900" />
              </div>
 
-             <InputWrapper label="توضیحات تکمیلی">
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} placeholder="ویژگی‌ها، معایب و مزایای کالا..." className="w-full bg-transparent outline-none text-sm font-medium text-gray-700 mt-2 resize-none leading-7 text-right" />
+             <InputWrapper label="توضیحات">
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} placeholder="ویژگی‌های کالا..." className="w-full bg-transparent outline-none text-sm font-medium text-gray-700 mt-2 resize-none leading-7" />
              </InputWrapper>
 
              <div className="space-y-4">
-                <label className="text-sm font-black text-gray-900">تصاویر (تا ۱۰ عدد)</label>
+                <label className="text-sm font-black text-gray-900">تصاویر آگهی ({images.length}/۱۰)</label>
                 <div className="flex flex-wrap gap-4">
                   {images.map((img, idx) => (
                     <div key={idx} className="w-24 h-24 rounded-2xl overflow-hidden relative border border-gray-100 group">
@@ -208,21 +218,26 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
             disabled={isSubmitting}
             className={`w-full bg-red-700 text-white font-black py-5 rounded-[2.5rem] shadow-2xl active:scale-95 transition-all text-lg flex items-center justify-center gap-3 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {isSubmitting ? 'در حال پایش امنیتی...' : 'تایید و انتشار آگهی'}
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                در حال بررسی امنیتی...
+              </>
+            ) : 'انتشار آگهی'}
           </button>
         </div>
 
         <div className="hidden md:block">
-          <div className="bg-[#12141d] p-8 rounded-[3.5rem] text-white shadow-2xl sticky top-24 text-right">
+          <div className="bg-[#12141d] p-8 rounded-[3.5rem] text-white shadow-2xl sticky top-24">
              <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center text-xl">🛡️</div>
-                <h3 className="font-black text-lg">امنیت هوشمند</h3>
+                <h3 className="font-black text-lg">امنیت نیکجو</h3>
              </div>
              <p className="text-[11px] text-gray-400 leading-6 mb-8">
-                نیکجو از مدل‌های زبانی Gemini برای شناسایی آگهی‌های اسپم و کلاهبرداری استفاده می‌کند.
+                نیکجو از لایه‌های امنیتی هوشمند برای شناسایی ربات‌ها و آگهی‌های اسپم استفاده می‌کند. تمامی محتوا توسط Gemini AI پایش می‌شود.
              </p>
              <button onClick={handleAiOptimize} disabled={isOptimizing || !title} className="w-full bg-white/10 text-white font-black py-4 rounded-2xl disabled:opacity-50 hover:bg-white/20 transition-all">
-                {isOptimizing ? 'در حال تحلیل محتوا...' : 'بهبود آگهی با Gemini AI'}
+                {isOptimizing ? 'در حال تحلیل...' : 'بهینه‌سازی با هوش مصنوعی'}
              </button>
           </div>
         </div>
@@ -230,18 +245,19 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
 
       {showMapModal && (
         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-           <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden flex flex-col h-[70vh] text-right">
+           <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden flex flex-col h-[70vh]">
               <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                 <h3 className="font-black">تعیین محدوده آگهی</h3>
-                 <button onClick={() => setShowMapModal(false)} className="text-sm font-bold text-gray-400">بستن</button>
+                 <h3 className="font-black">تعیین موقعیت روی نقشه</h3>
+                 <button onClick={() => setShowMapModal(false)}>بستن</button>
               </div>
               <div className="flex-1 bg-gray-100 relative">
                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-8 h-8 bg-red-700 rounded-full border-4 border-white shadow-xl animate-bounce"></div>
+                    <div className="w-8 h-8 bg-red-700 rounded-full border-4 border-white shadow-xl"></div>
                  </div>
+                 <p className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-gray-400">شبیه‌ساز نقشه نیکجو</p>
               </div>
               <div className="p-6">
-                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl shadow-lg">تایید موقعیت</button>
+                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl">تایید موقعیت</button>
               </div>
            </div>
         </div>

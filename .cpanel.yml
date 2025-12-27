@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/YOUR_USERNAME/public_html
+    - export DEPLOYPATH=/home14/nikjooma/public_html
     - /bin/cp -R * $DEPLOYPATH
