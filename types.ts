@@ -26,14 +26,21 @@ export interface Listing {
   isModerated?: boolean;
 }
 
+export interface SavedSearch {
+  id: string;
+  query: string;
+  location: string;
+  createdAt: string;
+}
+
 export interface Banner {
   id: string;
-  name: string; // نام داخلی بنر
-  title: string; // متن روی بنر
+  name: string;
+  title: string;
   imageUrl: string;
   link: string;
   position: number;
-  price: number; // قیمت اجاره بنر
+  price: number;
 }
 
 export interface Category {

@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CATEGORIES } from '../constants';
 import ListingCard from '../components/ListingCard';
 import { Listing, Banner } from '../types';
@@ -12,6 +12,7 @@ interface HomeProps {
   searchQuery: string;
   bookmarkedIds?: string[];
   onToggleBookmark?: (id: string) => void;
+  onAddAlert: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({ 
@@ -21,7 +22,8 @@ const Home: React.FC<HomeProps> = ({
   selectedLocations, 
   searchQuery,
   bookmarkedIds = [],
-  onToggleBookmark
+  onToggleBookmark,
+  onAddAlert
 }) => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
@@ -56,6 +58,24 @@ const Home: React.FC<HomeProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Alert Registration CTA */}
+      {(searchQuery || activeCategory) && (
+        <div className="p-4 bg-red-50/50 border-b border-red-100 animate-in fade-in slide-in-from-top-2">
+           <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-gray-900">جستجوی شما: {searchQuery || activeCategory}</p>
+                <p className="text-[10px] text-gray-400 mt-1">با ثبت هشدار، از آگهی‌های جدید باخبر شوید.</p>
+              </div>
+              <button 
+                onClick={onAddAlert}
+                className="bg-red-700 text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-lg active:scale-95 transition-all"
+              >
+                ثبت هشدار
+              </button>
+           </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 divide-y-2 divide-gray-100">
         {filteredListings.length > 0 ? (

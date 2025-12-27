@@ -13,7 +13,7 @@ import AuthModal from './components/AuthModal';
 import Bookmarks from './pages/Bookmarks';
 import Legal from './pages/Legal';
 import { MOCK_LISTINGS, MOCK_USERS, MOCK_BANNERS } from './constants';
-import { User, Listing, Banner } from './types';
+import { User, Listing, Banner, SavedSearch } from './types';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -35,6 +35,10 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('nikjoo_bookmarks');
     return saved ? JSON.parse(saved) : [];
   });
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => {
+    const saved = localStorage.getItem('nikjoo_alerts');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [allListings, setAllListings] = useState<Listing[]>(() => {
     const saved = localStorage.getItem('nikjoo_listings');
     return saved ? JSON.parse(saved) : MOCK_LISTINGS;
@@ -54,8 +58,8 @@ const App: React.FC = () => {
   }, [allListings]);
 
   useEffect(() => {
-    localStorage.setItem('nikjoo_banners', JSON.stringify(banners));
-  }, [banners]);
+    localStorage.setItem('nikjoo_alerts', JSON.stringify(savedSearches));
+  }, [savedSearches]);
 
   useEffect(() => {
     if (currentUser) {
@@ -69,6 +73,29 @@ const App: React.FC = () => {
     setBookmarkedIds(prev => 
       prev.includes(id) ? prev.filter(bid => bid !== id) : [...prev, id]
     );
+  };
+
+  const handleAddAlert = (query: string) => {
+    if (!isLoggedIn) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (savedSearches.length >= 3) {
+      alert("⚠️ محدودیت امنیتی: شما حداکثر مجاز به ثبت ۳ هشدار فعال هستید.");
+      return;
+    }
+    const newAlert: SavedSearch = {
+      id: 'a' + Date.now(),
+      query: query || 'همه آگهی‌ها',
+      location: selectedLocations[0] || 'سراسر ایران',
+      createdAt: 'امروز'
+    };
+    setSavedSearches([newAlert, ...savedSearches]);
+    alert("✅ هشدار جستجو با موفقیت ثبت شد.");
+  };
+
+  const handleRemoveAlert = (id: string) => {
+    setSavedSearches(prev => prev.filter(s => s.id !== id));
   };
 
   const navigateTo = (page: string, options?: { chatTab?: 'my' | 'ai', forceAuth?: boolean, legalTab?: 'tos' | 'privacy' }) => {
@@ -109,17 +136,6 @@ const App: React.FC = () => {
     setSelectedListingId(id);
     setCurrentPage('detail');
     window.scrollTo(0, 0);
-  };
-
-  const handleAddListing = (newAd: Listing) => {
-    setAllListings([newAd, ...allListings]);
-  };
-
-  const handleDeleteListing = (id: string) => {
-    if (window.confirm("آیا از حذف این آگهی اطمینان دارید؟")) {
-      setAllListings(prev => prev.filter(l => l.id !== id));
-      if (currentPage === 'detail') navigateTo('home');
-    }
   };
 
   if (isSplashActive) {
@@ -172,14 +188,20 @@ const App: React.FC = () => {
                 searchQuery={searchQuery}
                 bookmarkedIds={bookmarkedIds}
                 onToggleBookmark={toggleBookmark}
+                onAddAlert={() => handleAddAlert(searchQuery)}
               />;
             case 'detail':
               const listing = allListings.find(l => l.id === selectedListingId);
-              if (!listing) return <Home listings={allListings} banners={banners} onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} bookmarkedIds={bookmarkedIds} onToggleBookmark={toggleBookmark} />;
+              if (!listing) return <Home listings={allListings} banners={banners} onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} bookmarkedIds={bookmarkedIds} onToggleBookmark={toggleBookmark} onAddAlert={() => handleAddAlert(searchQuery)} />;
               return <ListingDetail 
                 listing={listing} 
                 isAdmin={currentUser?.role === 'admin' || currentUser?.id === listing.seller.id}
-                onAdminDelete={() => handleDeleteListing(listing.id)}
+                onAdminDelete={() => {
+                  if (window.confirm("حذف آگهی؟")) {
+                    setAllListings(prev => prev.filter(l => l.id !== listing.id));
+                    navigateTo('home');
+                  }
+                }}
                 onBack={() => navigateTo('home')} 
                 onChat={() => navigateTo('chat', { forceAuth: true })}
                 isBookmarked={bookmarkedIds.includes(listing.id)}
@@ -191,11 +213,13 @@ const App: React.FC = () => {
                 onListingClick={handleListingClick}
                 bookmarkedIds={bookmarkedIds}
                 onToggleBookmark={toggleBookmark}
+                savedSearches={savedSearches}
+                onRemoveAlert={handleRemoveAlert}
               />;
             case 'post':
               return <PostAd 
                 onComplete={() => navigateTo('home')} 
-                onAddListing={handleAddListing}
+                onAddListing={(ad) => setAllListings([ad, ...allListings])}
                 currentUser={currentUser!}
                 defaultLocation={selectedLocations[0] || 'تهران'} 
               />;
@@ -223,12 +247,12 @@ const App: React.FC = () => {
             case 'legal':
               return <Legal onBack={() => navigateTo('profile')} initialTab={legalInitialTab} />;
             default:
-              return <Home listings={allListings} banners={banners} onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} bookmarkedIds={bookmarkedIds} onToggleBookmark={toggleBookmark} />;
+              return <Home listings={allListings} banners={banners} onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} bookmarkedIds={bookmarkedIds} onToggleBookmark={toggleBookmark} onAddAlert={() => handleAddAlert(searchQuery)} />;
           }
         })()}
       </main>
       
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 flex justify-around items-center px-2 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 flex justify-around items-center px-2 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
         <button onClick={() => navigateTo('home')} className={`flex flex-col items-center gap-1 ${currentPage === 'home' ? 'text-red-700' : 'text-gray-400'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
           <span className="text-[10px] font-bold">آگهی‌ها</span>
@@ -251,7 +275,7 @@ const App: React.FC = () => {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           <span className="text-[10px] font-bold">حساب من</span>
         </button>
-      </div>
+      </nav>
     </div>
   );
 };

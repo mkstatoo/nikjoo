@@ -1,21 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { CATEGORIES, SUB_CATEGORIES } from '../constants';
-import { suggestListingOptimization } from '../services/gemini';
+import { suggestListingOptimization, moderateContent } from '../services/gemini';
 import { User, Listing } from '../types';
-
-const CITY_COORDS: Record<string, [number, number]> = {
-  'تهران': [35.6892, 51.3890],
-  'مشهد': [36.2972, 59.6067],
-  'اصفهان': [32.6546, 51.6680],
-  'شیراز': [29.6103, 52.5311],
-  'تبریز': [38.0962, 46.2731],
-  'اهواز': [31.3183, 48.6706],
-  'قم': [34.6416, 50.8746],
-  'کرج': [35.8327, 50.9915],
-  'رشت': [37.2808, 49.5831],
-  'کرمان': [30.2839, 57.0833],
-};
 
 interface InputWrapperProps {
   label: string;
@@ -46,31 +33,22 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   
-  const [locationName, setLocationName] = useState(defaultLocation === 'کل ایران' ? 'تهران' : defaultLocation);
-  const [latLng, setLatLng] = useState<{lat: number, lng: number} | null>(null);
-  const [showMapModal, setShowMapModal] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>(CITY_COORDS[locationName] || [35.6892, 51.3890]);
+  // Anti-Bot States
+  const [hpValue, setHpValue] = useState(''); // Honeypot
+  const [formStartTime] = useState(Date.now());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [locationName, setLocationName] = useState(defaultLocation === 'کل ایران' ? 'تهران' : defaultLocation);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [attributes, setAttributes] = useState<Record<string, any>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const city = defaultLocation === 'کل ایران' ? 'تهران' : defaultLocation;
-    setLocationName(city);
-    if (CITY_COORDS[city]) setMapCenter(CITY_COORDS[city]);
-  }, [defaultLocation]);
-
-  const handleAttributeChange = (name: string, value: any) => {
-    setAttributes(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      // In real app, we'd upload to a server. Here we use object URLs.
       const newImages = Array.from(files).map((file: File) => URL.createObjectURL(file));
       setImages(prev => [...prev, ...newImages].slice(0, 10));
     }
@@ -87,10 +65,34 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
     setIsOptimizing(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 1. Honeypot check
+    if (hpValue) {
+      console.warn("Bot detected via Honeypot");
+      return;
+    }
+
+    // 2. Submission timing check
+    const timeTaken = (Date.now() - formStartTime) / 1000;
+    if (timeTaken < 4) {
+      alert("سیستم امنیتی: لطفاً فرم را با دقت بیشتری پر کنید (ثبت خیلی سریع مجاز نیست).");
+      return;
+    }
+
     if (!category || !subCategory || !title || !price) {
       alert("لطفاً تمام فیلدهای ضروری را تکمیل کنید.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // 3. AI Security & Spam Check
+    const modResult = await moderateContent(`${title} ${description}`);
+    if (!modResult.isSafe || modResult.isBotLikely) {
+      alert(`⚠️ متاسفانه آگهی شما توسط سیستم امنیتی رد شد.\nعلت: ${modResult.reason || 'محتوای مشکوک یا رباتیک'}`);
+      setIsSubmitting(false);
       return;
     }
 
@@ -110,13 +112,23 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
     };
 
     onAddListing(newAd);
-    alert("آگهی شما با موفقیت ثبت شد و در لیست آگهی‌ها قرار گرفت.");
+    alert("آگهی شما با موفقیت ثبت شد و در صف انتشار قرار گرفت.");
     onComplete();
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32" dir="rtl">
-      {/* Header */}
+      {/* Honeypot field (hidden from humans) */}
+      <div className="opacity-0 absolute -z-50 pointer-events-none h-0 w-0 overflow-hidden">
+        <input 
+          type="text" 
+          value={hpValue} 
+          onChange={(e) => setHpValue(e.target.value)} 
+          tabIndex={-1} 
+          autoComplete="off" 
+        />
+      </div>
+
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
         <button onClick={onComplete} className="text-gray-400 hover:text-gray-900 transition-colors">
            <svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -201,22 +213,31 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
              </div>
           </div>
 
-          <button onClick={handleSubmit} className="w-full bg-red-700 text-white font-black py-5 rounded-[2.5rem] shadow-2xl active:scale-95 transition-all text-lg">
-            انتشار آگهی
+          <button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className={`w-full bg-red-700 text-white font-black py-5 rounded-[2.5rem] shadow-2xl active:scale-95 transition-all text-lg flex items-center justify-center gap-3 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                در حال بررسی امنیتی...
+              </>
+            ) : 'انتشار آگهی'}
           </button>
         </div>
 
         <div className="hidden md:block">
           <div className="bg-[#12141d] p-8 rounded-[3.5rem] text-white shadow-2xl sticky top-24">
              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center text-xl">✨</div>
-                <h3 className="font-black text-lg">دستیار هوشمند</h3>
+                <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center text-xl">🛡️</div>
+                <h3 className="font-black text-lg">امنیت نیکجو</h3>
              </div>
              <p className="text-[11px] text-gray-400 leading-6 mb-8">
-                نیکجو با استفاده از هوش مصنوعی آگهی شما را تحلیل کرده و پیشنهاداتی برای فروش سریع‌تر ارائه می‌دهد.
+                نیکجو از لایه‌های امنیتی هوشمند برای شناسایی ربات‌ها و آگهی‌های اسپم استفاده می‌کند. تمامی محتوا توسط Gemini AI پایش می‌شود.
              </p>
-             <button onClick={handleAiOptimize} disabled={isOptimizing || !title} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl disabled:opacity-50">
-                {isOptimizing ? 'در حال تحلیل...' : 'بهینه‌سازی با AI'}
+             <button onClick={handleAiOptimize} disabled={isOptimizing || !title} className="w-full bg-white/10 text-white font-black py-4 rounded-2xl disabled:opacity-50 hover:bg-white/20 transition-all">
+                {isOptimizing ? 'در حال تحلیل...' : 'بهینه‌سازی با هوش مصنوعی'}
              </button>
           </div>
         </div>
@@ -233,10 +254,10 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-8 h-8 bg-red-700 rounded-full border-4 border-white shadow-xl"></div>
                  </div>
-                 <p className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-gray-400">شبیه‌ساز نقشه: مرکز تصویر موقعیت آگهی است.</p>
+                 <p className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-gray-400">شبیه‌ساز نقشه نیکجو</p>
               </div>
               <div className="p-6">
-                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl">تایید این موقعیت</button>
+                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl">تایید موقعیت</button>
               </div>
            </div>
         </div>

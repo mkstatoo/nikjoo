@@ -14,7 +14,7 @@ interface TeamMember {
 
 const TEAM_MEMBERS: TeamMember[] = [
   {
-    name: "حمید نیکجو",
+    name: "مجتبی خانی",
     role: "مدیر عامل و بنیان‌گذار",
     bio: "متخصص استراتژی کسب و کار با بیش از ۱۰ سال سابقه در حوزه تجارت الکترونیک.",
     image: "https://picsum.photos/seed/ceo/150/150"
@@ -46,7 +46,7 @@ const About: React.FC<AboutProps> = ({ onBack }) => {
       <div className="max-w-xl mx-auto px-6 py-12">
         <div className="text-center mb-16">
           <div className="w-24 h-24 bg-red-700 rounded-3xl mx-auto flex items-center justify-center text-white text-5xl font-black shadow-xl rotate-3 mb-6">ن</div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-4">نیکجو مارکت‌پلیس</h1>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-4">نیکجو مارکت</h1>
           <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">The Future of Local Trading</p>
         </div>
 
@@ -107,7 +107,7 @@ const About: React.FC<AboutProps> = ({ onBack }) => {
             <p className="text-gray-400 text-xs font-bold leading-6 mb-2">
               ساخته شده با ❤️ در تهران
             </p>
-            <p className="text-gray-300 text-[10px] uppercase font-black tracking-widest">© 2025 Nikjoo Marketplace Group</p>
+            <p className="text-gray-300 text-[10px] uppercase font-black tracking-widest">© 2025 Nikjoo Market Group</p>
           </section>
         </div>
       </div>

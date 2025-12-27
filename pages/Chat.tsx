@@ -45,9 +45,37 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ initialTab = 'my', isAdmin }) => {
   const [activeTab, setActiveTab] = useState<'my' | 'ai'>(initialTab);
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
-  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
   const [userInputValue, setUserInputValue] = useState('');
   
+  // AI Chat States
+  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
+  const [isAiConnecting, setIsAiConnecting] = useState(true);
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const aiChatEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize AI Welcome Message
+  useEffect(() => {
+    if (activeTab === 'ai' && aiMessages.length === 0) {
+      const timer = setTimeout(() => {
+        setIsAiConnecting(false);
+        setAiMessages([
+          {
+            id: 'ai_init',
+            role: 'bot',
+            text: 'سلام! من دستیار هوشمند نیکجو مارکت هستم. چطور می‌توانم به شما کمک کنم؟ شما می‌توانید درباره ثبت آگهی، امنیت معاملات یا قوانین سایت از من بپرسید.',
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]);
+
+  // Scroll to bottom helper
+  useEffect(() => {
+    aiChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [aiMessages, isAiThinking]);
+
   const handleAdminDeleteMessage = (msgId: string) => {
     if (!selectedChat) return;
     if (window.confirm("حذف این پیام توسط ادمین؟")) {
@@ -59,19 +87,56 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my', isAdmin }) => {
   };
 
   const handleSendUserMessage = async () => {
-    if (!userInputValue.trim() || !selectedChat) return;
-    
-    // AI Moderation before sending
-    const modResult = await moderateContent(userInputValue);
-    if (!modResult.isSafe) {
-      alert(`⚠️ اخطار امنیتی: محتوای پیام شما غیرمجاز تشخیص داده شد.\nعلت: ${modResult.reason || 'نامشخص'}`);
-      return;
-    }
+    if (!userInputValue.trim()) return;
 
-    const text = userInputValue;
-    setUserInputValue('');
-    const newMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text, timestamp: 'الان' };
-    setSelectedChat(prev => prev ? { ...prev, messages: [...prev.messages, newMsg] } : null);
+    // Logic for User-to-User chat
+    if (activeTab === 'my' && selectedChat) {
+      const modResult = await moderateContent(userInputValue);
+      if (!modResult.isSafe) {
+        alert(`⚠️ اخطار امنیتی: محتوای پیام شما غیرمجاز تشخیص داده شد.\nعلت: ${modResult.reason || 'نامشخص'}`);
+        return;
+      }
+      const text = userInputValue;
+      setUserInputValue('');
+      const newMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text, timestamp: 'الان' };
+      setSelectedChat(prev => prev ? { ...prev, messages: [...prev.messages, newMsg] } : null);
+    } 
+    // Logic for AI Support chat
+    else if (activeTab === 'ai') {
+      const userText = userInputValue;
+      setUserInputValue('');
+      
+      const userMsg: ChatMessage = { 
+        id: Date.now().toString(), 
+        role: 'user', 
+        text: userText, 
+        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) 
+      };
+      
+      setAiMessages(prev => [...prev, userMsg]);
+      setIsAiThinking(true);
+
+      try {
+        const history = aiMessages.map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          content: m.text
+        }));
+        
+        const responseText = await chatWithSupport(userText, history);
+        
+        const botMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'bot',
+          text: responseText || 'متاسفم، مشکلی در دریافت پاسخ پیش آمد.',
+          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        };
+        setAiMessages(prev => [...prev, botMsg]);
+      } catch (error) {
+        console.error("AI Response Error:", error);
+      } finally {
+        setIsAiThinking(false);
+      }
+    }
   };
 
   return (
@@ -89,8 +154,8 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my', isAdmin }) => {
           <div className="p-4 flex justify-between items-center">
             <h1 className="text-xl font-black text-gray-900">پیام‌ها</h1>
             <div className="flex border-b border-gray-100">
-               <button onClick={() => setActiveTab('my')} className={`px-4 py-2 text-xs font-black ${activeTab === 'my' ? 'text-red-700 border-b-2 border-red-700' : 'text-gray-400'}`}>گفتگوهای من</button>
-               <button onClick={() => setActiveTab('ai')} className={`px-4 py-2 text-xs font-black ${activeTab === 'ai' ? 'text-red-700 border-b-2 border-red-700' : 'text-gray-400'}`}>پشتیبانی هوشمند</button>
+               <button onClick={() => setActiveTab('my')} className={`px-4 py-2 text-xs font-black transition-all ${activeTab === 'my' ? 'text-red-700 border-b-2 border-red-700' : 'text-gray-400'}`}>گفتگوهای من</button>
+               <button onClick={() => setActiveTab('ai')} className={`px-4 py-2 text-xs font-black transition-all ${activeTab === 'ai' ? 'text-red-700 border-b-2 border-red-700' : 'text-gray-400'}`}>پشتیبانی هوشمند</button>
             </div>
           </div>
         )}
@@ -134,7 +199,13 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my', isAdmin }) => {
               </div>
               <div className="p-4 bg-white border-t border-gray-100">
                 <div className="flex gap-2 bg-gray-100 rounded-[2rem] p-1.5 focus-within:ring-2 ring-red-100 transition-all">
-                  <input value={userInputValue} onChange={e => setUserInputValue(e.target.value)} placeholder="پیام..." className="flex-1 px-5 bg-transparent outline-none text-sm font-medium" />
+                  <input 
+                    value={userInputValue} 
+                    onChange={e => setUserInputValue(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && handleSendUserMessage()}
+                    placeholder="پیام..." 
+                    className="flex-1 px-5 bg-transparent outline-none text-sm font-medium" 
+                  />
                   <button onClick={handleSendUserMessage} className="w-11 h-11 bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all">
                     <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2" strokeWidth="2.5"/></svg>
                   </button>
@@ -143,10 +214,59 @@ const Chat: React.FC<ChatProps> = ({ initialTab = 'my', isAdmin }) => {
             </div>
           )
         ) : (
-          <div className="flex-1 flex flex-col justify-center items-center p-10 text-center text-gray-400">
-             <span className="text-4xl mb-4">🤖</span>
-             <p className="font-bold">در حال اتصال به دستیار هوشمند پشتیبانی...</p>
-          </div>
+          /* AI Support Chat Interface */
+          isAiConnecting ? (
+            <div className="flex-1 flex flex-col justify-center items-center p-10 text-center text-gray-400">
+               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                  <span className="text-4xl">🤖</span>
+               </div>
+               <p className="font-bold text-sm">در حال اتصال به دستیار هوشمند پشتیبانی...</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                {aiMessages.map(msg => (
+                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] px-5 py-3 rounded-3xl text-sm leading-7 shadow-sm ${
+                      msg.role === 'user' ? 'bg-red-700 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
+                    }`}>
+                      {msg.text}
+                      <div className={`text-[9px] mt-1 ${msg.role === 'user' ? 'text-red-100' : 'text-gray-400'}`}>{msg.timestamp}</div>
+                    </div>
+                  </div>
+                ))}
+                {isAiThinking && (
+                  <div className="flex justify-start">
+                    <div className="bg-white px-5 py-3 rounded-3xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1">
+                       <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce"></div>
+                       <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                       <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                    </div>
+                  </div>
+                )}
+                <div ref={aiChatEndRef} />
+              </div>
+              <div className="p-4 bg-white border-t border-gray-100">
+                <div className="flex gap-2 bg-gray-100 rounded-[2rem] p-1.5 focus-within:ring-2 ring-red-100 transition-all">
+                  <input 
+                    value={userInputValue} 
+                    onChange={e => setUserInputValue(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && !isAiThinking && handleSendUserMessage()}
+                    placeholder="سوال خود را بپرسید..." 
+                    disabled={isAiThinking}
+                    className="flex-1 px-5 bg-transparent outline-none text-sm font-medium disabled:opacity-50" 
+                  />
+                  <button 
+                    onClick={handleSendUserMessage} 
+                    disabled={isAiThinking || !userInputValue.trim()}
+                    className="w-11 h-11 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-30"
+                  >
+                    <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2" strokeWidth="2.5"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>

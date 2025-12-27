@@ -1,5 +1,5 @@
 
-# 🚀 Nikjoo Marketplace (نیکجو)
+# 🚀 Nikjoo Market (نیکجو)
 
 Nikjoo is a high-performance, AI-powered classifieds marketplace built with **React**, **Tailwind CSS**, and **Google Gemini AI**.
 
