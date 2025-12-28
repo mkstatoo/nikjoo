@@ -14,6 +14,7 @@ import Bookmarks from './pages/Bookmarks';
 import Legal from './pages/Legal';
 import { MOCK_LISTINGS, MOCK_USERS, MOCK_BANNERS } from './constants';
 import { User, Listing, Banner, SavedSearch } from './types';
+import { db } from './services/db';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -25,37 +26,38 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [legalInitialTab, setLegalInitialTab] = useState<'tos' | 'privacy'>('tos');
   
-  // States
+  // Data States
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('nikjoo_user');
     return saved ? JSON.parse(saved) : null;
   });
   const [isLoggedIn, setIsLoggedIn] = useState(!!currentUser);
-  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('nikjoo_bookmarks');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [allListings, setAllListings] = useState<Listing[]>([]);
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => {
     const saved = localStorage.getItem('nikjoo_alerts');
     return saved ? JSON.parse(saved) : [];
-  });
-  const [allListings, setAllListings] = useState<Listing[]>(() => {
-    const saved = localStorage.getItem('nikjoo_listings');
-    return saved ? JSON.parse(saved) : MOCK_LISTINGS;
   });
   const [banners, setBanners] = useState<Banner[]>(() => {
     const saved = localStorage.getItem('nikjoo_banners');
     return saved ? JSON.parse(saved) : MOCK_BANNERS;
   });
 
+  // Initialization
   useEffect(() => {
-    const timer = setTimeout(() => setIsSplashActive(false), 2000);
-    return () => clearTimeout(timer);
+    const loadData = async () => {
+      const [listings, bookmarks] = await Promise.all([
+        db.getListings(),
+        db.getBookmarks()
+      ]);
+      setAllListings(listings);
+      setBookmarkedIds(bookmarks);
+      
+      const timer = setTimeout(() => setIsSplashActive(false), 2000);
+      return () => clearTimeout(timer);
+    };
+    loadData();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('nikjoo_listings', JSON.stringify(allListings));
-  }, [allListings]);
 
   useEffect(() => {
     localStorage.setItem('nikjoo_alerts', JSON.stringify(savedSearches));
@@ -69,10 +71,9 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  const toggleBookmark = (id: string) => {
-    setBookmarkedIds(prev => 
-      prev.includes(id) ? prev.filter(bid => bid !== id) : [...prev, id]
-    );
+  const toggleBookmark = async (id: string) => {
+    const updated = await db.toggleBookmark(id);
+    setBookmarkedIds(updated);
   };
 
   const handleAddAlert = (query: string) => {
@@ -115,6 +116,7 @@ const App: React.FC = () => {
   const [pendingAction, setPendingAction] = useState<{page: string, options?: any} | null>(null);
 
   const handleAuthSuccess = (phone: string) => {
+    // Added default preferences to ensure the foundUser object matches the User interface
     const foundUser = MOCK_USERS.find(u => u.phone === phone) || {
        id: 'u_' + Date.now(),
        name: phone === '09120000000' ? 'مدیر سیستم' : 'کاربر جدید',
@@ -122,7 +124,9 @@ const App: React.FC = () => {
        joinedDate: 'اسفند ۱۴۰۳',
        rating: 5.0,
        role: phone === '09120000000' ? 'admin' : 'user',
-       phone
+       phone,
+       isVerified: true,
+       preferences: { viewMode: 'list', theme: 'light', notifications: true }
     };
     setCurrentUser(foundUser as User);
     setIsLoggedIn(true);
@@ -132,10 +136,20 @@ const App: React.FC = () => {
     }
   };
 
-  const handleListingClick = (id: string) => {
+  const handleListingClick = async (id: string) => {
+    await db.incrementView(id);
+    // Update local state to show view count change if needed
+    setAllListings(prev => prev.map(l => l.id === id ? { ...l, views: (l.views || 0) + 1 } : l));
     setSelectedListingId(id);
     setCurrentPage('detail');
     window.scrollTo(0, 0);
+  };
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      await db.addSearchQuery(query);
+    }
   };
 
   if (isSplashActive) {
@@ -157,7 +171,7 @@ const App: React.FC = () => {
           onLocationClick={() => setShowLocationSelector(true)} 
           selectedLocations={selectedLocations} 
           searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={handleSearch}
         />
       )}
       
@@ -192,12 +206,13 @@ const App: React.FC = () => {
               />;
             case 'detail':
               const listing = allListings.find(l => l.id === selectedListingId);
-              if (!listing) return <Home listings={allListings} banners={banners} onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} bookmarkedIds={bookmarkedIds} onToggleBookmark={toggleBookmark} onAddAlert={() => handleAddAlert(searchQuery)} />;
+              if (!listing) return null;
               return <ListingDetail 
                 listing={listing} 
                 isAdmin={currentUser?.role === 'admin' || currentUser?.id === listing.seller.id}
-                onAdminDelete={() => {
+                onAdminDelete={async () => {
                   if (window.confirm("حذف آگهی؟")) {
+                    await db.deleteListing(listing.id);
                     setAllListings(prev => prev.filter(l => l.id !== listing.id));
                     navigateTo('home');
                   }
@@ -218,8 +233,13 @@ const App: React.FC = () => {
               />;
             case 'post':
               return <PostAd 
-                onComplete={() => navigateTo('home')} 
-                onAddListing={(ad) => setAllListings([ad, ...allListings])}
+                onComplete={() => {
+                  db.getListings().then(setAllListings);
+                  navigateTo('home');
+                }} 
+                onAddListing={async (ad) => {
+                  await db.saveListing(ad);
+                }}
                 currentUser={currentUser!}
                 defaultLocation={selectedLocations[0] || 'تهران'} 
               />;
@@ -247,7 +267,7 @@ const App: React.FC = () => {
             case 'legal':
               return <Legal onBack={() => navigateTo('profile')} initialTab={legalInitialTab} />;
             default:
-              return <Home listings={allListings} banners={banners} onListingClick={handleListingClick} selectedLocations={selectedLocations} searchQuery={searchQuery} bookmarkedIds={bookmarkedIds} onToggleBookmark={toggleBookmark} onAddAlert={() => handleAddAlert(searchQuery)} />;
+              return null;
           }
         })()}
       </main>

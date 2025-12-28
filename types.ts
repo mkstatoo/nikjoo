@@ -7,6 +7,15 @@ export interface User {
   rating: number;
   role?: 'admin' | 'user';
   phone?: string;
+  isVerified?: boolean;
+  preferences: UserPreferences;
+  blockedUsers?: string[]; // لیست آی‌دی کاربران مسدود شده
+}
+
+export interface UserPreferences {
+  viewMode: 'grid' | 'list';
+  theme: 'light' | 'dark';
+  notifications: boolean;
 }
 
 export interface Listing {
@@ -20,10 +29,14 @@ export interface Listing {
   images: string[];
   seller: User;
   createdAt: string;
+  updatedAt?: string;
   condition: 'New' | 'Used - Like New' | 'Used - Good' | 'Used - Fair';
   tags: string[];
   icon?: string;
   isModerated?: boolean;
+  views: number;
+  status: 'active' | 'sold' | 'expired' | 'pending';
+  reportsCount?: number; // تعداد گزارش‌های تخلف
 }
 
 export interface SavedSearch {
@@ -31,6 +44,12 @@ export interface SavedSearch {
   query: string;
   location: string;
   createdAt: string;
+}
+
+export interface RecentSearch {
+  id: string;
+  query: string;
+  timestamp: number;
 }
 
 export interface Banner {
@@ -41,6 +60,7 @@ export interface Banner {
   link: string;
   position: number;
   price: number;
+  status?: 'active' | 'inactive';
 }
 
 export interface Category {

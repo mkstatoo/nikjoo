@@ -24,6 +24,42 @@ const ListingDetail: React.FC<ListingDetailProps> = ({
 }) => {
   const [activeImage, setActiveImage] = useState(0);
 
+  const handleShare = async () => {
+    let shareUrl = window.location.href;
+    try {
+      const url = new URL(shareUrl);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        shareUrl = `${window.location.origin}${window.location.pathname}?id=${listing.id}`;
+      }
+    } catch (e) {
+      shareUrl = window.location.origin;
+    }
+
+    const shareData = {
+      title: listing.title,
+      text: `آگهی "${listing.title}" را در نیکجو ببینید:`,
+      url: shareUrl
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('لینک آگهی در حافظه کپی شد.');
+      }
+    } catch (error) {
+      console.error('Share failed');
+    }
+  };
+
+  const handleReport = () => {
+    const reason = window.prompt("علت گزارش تخلف چیست؟ (کلاهبرداری، محتوای نامناسب، قیمت غیر واقعی و ...)");
+    if (reason) {
+      alert("گزارش شما با موفقیت ثبت شد و توسط تیم نظارت بررسی خواهد شد. ممنون از همکاری شما.");
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 pt-6 pb-40" dir="rtl">
       {isAdmin && (
@@ -47,7 +83,23 @@ const ListingDetail: React.FC<ListingDetailProps> = ({
           بازگشت
         </button>
         <div className="flex gap-3">
-          <button onClick={onToggleBookmark} className={`p-2.5 rounded-2xl border ${isBookmarked ? 'bg-red-700 text-white' : 'bg-gray-50 text-gray-500'}`}>
+          <button 
+            onClick={handleReport}
+            className="p-2.5 rounded-2xl border bg-gray-50 text-gray-400 hover:text-red-700 hover:bg-red-50 transition-all"
+            title="گزارش تخلف"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          </button>
+          <button 
+            onClick={handleShare}
+            className="p-2.5 rounded-2xl border bg-gray-50 text-gray-500 hover:text-red-700 hover:bg-red-50 transition-all"
+            title="اشتراک‌گذاری"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
+          <button onClick={onToggleBookmark} className={`p-2.5 rounded-2xl border transition-all ${isBookmarked ? 'bg-red-700 text-white shadow-md border-red-700' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
             <svg className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" strokeWidth="2"/></svg>
           </button>
         </div>

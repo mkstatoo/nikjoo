@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { CATEGORIES, SUB_CATEGORIES } from '../constants';
 import { suggestListingOptimization, moderateContent } from '../services/gemini';
@@ -40,8 +41,8 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
   const [locationName, setLocationName] = useState(defaultLocation === 'کل ایران' ? 'تهران' : defaultLocation);
   const [showMapModal, setShowMapModal] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [mainImageIndex, setMainImageIndex] = useState(0); // ایندکس عکس اصلی
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [attributes, setAttributes] = useState<Record<string, any>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,8 +50,24 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
     const files = e.target.files;
     if (files) {
       const newImages = Array.from(files).map((file: File) => URL.createObjectURL(file));
-      setImages(prev => [...prev, ...newImages].slice(0, 10));
+      setImages(prev => {
+        const updated = [...prev, ...newImages].slice(0, 10);
+        return updated;
+      });
     }
+  };
+
+  const removeImage = (idx: number) => {
+    setImages(prev => {
+      const filtered = prev.filter((_, i) => i !== idx);
+      // اگر عکس اصلی حذف شد یا ایندکس جابجا شد، مدیریت شود
+      if (mainImageIndex === idx) {
+        setMainImageIndex(0);
+      } else if (mainImageIndex > idx) {
+        setMainImageIndex(mainImageIndex - 1);
+      }
+      return filtered;
+    });
   };
 
   const handleAiOptimize = async () => {
@@ -92,6 +109,16 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
       return;
     }
 
+    // جابجا کردن عکس اصلی به ابتدای آرایه برای نمایش در لیست‌ها
+    let finalImages = [...images];
+    if (finalImages.length > 0) {
+      const mainImg = finalImages.splice(mainImageIndex, 1)[0];
+      finalImages.unshift(mainImg);
+    } else {
+      finalImages = ['https://picsum.photos/seed/placeholder/400/300'];
+    }
+
+    // Fixed: Added missing required properties 'views' and 'status' to the new Listing object.
     const newAd: Listing = {
       id: 'l' + Date.now(),
       title,
@@ -100,11 +127,13 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
       currency: 'تومان',
       category,
       location: `ایران، ${locationName}`,
-      images: images.length > 0 ? images : ['https://picsum.photos/seed/placeholder/400/300'],
+      images: finalImages,
       seller: currentUser,
       createdAt: 'لحظاتی پیش',
       condition: 'Used - Good',
-      tags: [subCategory]
+      tags: [subCategory],
+      views: 0,
+      status: 'active'
     };
 
     onAddListing(newAd);
@@ -185,19 +214,49 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
              </InputWrapper>
 
              <div className="space-y-4">
-                <label className="text-sm font-black text-gray-900">تصاویر (تا ۱۰ عدد)</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-black text-gray-900">تصاویر (تا ۱۰ عدد)</label>
+                  <span className="text-[10px] text-gray-400 font-bold">برای انتخاب عکس اصلی، روی آن کلیک کنید.</span>
+                </div>
                 <div className="flex flex-wrap gap-4">
                   {images.map((img, idx) => (
-                    <div key={idx} className="w-24 h-24 rounded-2xl overflow-hidden relative border border-gray-100 group">
+                    <div 
+                      key={idx} 
+                      onClick={() => setMainImageIndex(idx)}
+                      className={`w-28 h-28 rounded-2xl overflow-hidden relative border-4 transition-all cursor-pointer group ${mainImageIndex === idx ? 'border-red-700 shadow-lg scale-105' : 'border-gray-100'}`}
+                    >
                       <img src={img} className="w-full h-full object-cover" alt="" />
-                      <button onClick={() => setImages(images.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-red-700 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth="3"/></svg>
+                      
+                      {/* Badge for Main Image */}
+                      {mainImageIndex === idx && (
+                        <div className="absolute top-0 left-0 right-0 bg-red-700 text-white text-[8px] font-black py-1 text-center uppercase tracking-tighter">
+                          عکس اصلی
+                        </div>
+                      )}
+
+                      {/* Delete Button */}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }} 
+                        className="absolute bottom-1 right-1 bg-black/60 text-white p-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                      >
+                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth="3"/></svg>
                       </button>
+
+                      {/* Selection Overlay */}
+                      {mainImageIndex !== idx && (
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                           <span className="text-white text-[9px] font-black bg-black/40 px-2 py-1 rounded-lg">انتخاب به عنوان اصلی</span>
+                        </div>
+                      )}
                     </div>
                   ))}
-                  <button onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 hover:border-red-700 transition-all">
-                    <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2.5"/></svg>
-                  </button>
+                  
+                  {images.length < 10 && (
+                    <button onClick={() => fileInputRef.current?.click()} className="w-28 h-28 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 hover:border-red-700 hover:bg-red-50 transition-all text-gray-300 hover:text-red-700">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2.5"/></svg>
+                      <span className="text-[9px] font-black">افزودن عکس</span>
+                    </button>
+                  )}
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} hidden multiple accept="image/*" />
                 </div>
              </div>

@@ -96,6 +96,7 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
       return;
     }
 
+    // Fixed: Added missing required properties 'views' and 'status' to satisfy the Listing interface.
     const newAd: Listing = {
       id: 'l' + Date.now(),
       title,
@@ -108,7 +109,9 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
       seller: currentUser,
       createdAt: 'لحظاتی پیش',
       condition: attributes.condition || 'Used - Good',
-      tags: [subCategory, ...(attributes.brand ? [attributes.brand] : [])]
+      tags: [subCategory, ...(attributes.brand ? [attributes.brand] : [])],
+      views: 0,
+      status: 'active'
     };
 
     onAddListing(newAd);
