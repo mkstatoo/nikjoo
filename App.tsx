@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [initialChatTab, setInitialChatTab] = useState<'my' | 'ai'>('my');
   const [searchQuery, setSearchQuery] = useState('');
   const [legalInitialTab, setLegalInitialTab] = useState<'tos' | 'privacy'>('tos');
+  const [logoError, setLogoError] = useState(false);
   
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('nikjoo_user');
@@ -44,15 +45,19 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const [listings, bookmarks] = await Promise.all([
-        db.getListings(),
-        db.getBookmarks()
-      ]);
-      setAllListings(listings);
-      setBookmarkedIds(bookmarks);
-      
-      const timer = setTimeout(() => setIsSplashActive(false), 2500);
-      return () => clearTimeout(timer);
+      try {
+        const [listings, bookmarks] = await Promise.all([
+          db.getListings(),
+          db.getBookmarks()
+        ]);
+        setAllListings(listings);
+        setBookmarkedIds(bookmarks);
+      } catch (err) {
+        console.error("Error loading initial data:", err);
+      } finally {
+        // حداقل 2 ثانیه نمایش اسپلش برای زیبایی
+        setTimeout(() => setIsSplashActive(false), 2000);
+      }
     };
     loadData();
   }, []);
@@ -151,17 +156,31 @@ const App: React.FC = () => {
   if (isSplashActive) {
     return (
       <div className="fixed inset-0 z-[300] bg-white flex flex-col items-center justify-center overflow-hidden">
-        <div className="relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-1000">
-           {/* استفاده از لوگوی جدید در اسپلش اسکرین */}
-           <div className="w-32 h-32 mb-8 animate-logo">
-             <img src="logo.png" alt="Nikjoo Logo" className="w-full h-full object-contain" />
+        <div className="relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-700">
+           
+           <div className="w-32 h-32 mb-8 animate-logo flex items-center justify-center">
+             {!logoError ? (
+               <img 
+                 src="logo.png" 
+                 alt="Nikjoo Logo" 
+                 className="w-full h-full object-contain"
+                 onError={() => setLogoError(true)}
+               />
+             ) : (
+               <div className="w-full h-full bg-red-700 rounded-[2rem] flex items-center justify-center shadow-2xl">
+                 <span className="text-white text-5xl font-black">N</span>
+               </div>
+             )}
            </div>
+
            <h1 className="text-3xl font-black text-gray-900 tracking-tighter mb-2">نیکجو مارکت</h1>
-           <div className="flex items-center gap-2">
+           
+           <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce"></div>
               <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce [animation-delay:0.2s]"></div>
               <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce [animation-delay:0.4s]"></div>
            </div>
+           
            <p className="fixed bottom-12 text-[9px] font-black text-gray-300 tracking-[0.4em] uppercase">Powered by Gemini AI</p>
         </div>
       </div>

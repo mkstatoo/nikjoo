@@ -3,17 +3,31 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// استفاده از پورت تعریف شده توسط هاست یا پورت ۳۰۰۰ به صورت پیش‌فرض
 const PORT = process.env.PORT || 3000;
+const rootPath = path.resolve(__dirname);
 
-// سرو کردن تمام فایل‌های پروژه (HTML, JS, TSX, CSS)
-app.use(express.static(path.join(__dirname, '.')));
+// لاگ برای بررسی مسیر در هاست
+console.log('Server is starting. Directory:', rootPath);
 
-// هدایت تمام درخواست‌ها به index.html برای پشتیبانی از روتینگ React (SPA)
+// سرو کردن فایل‌های استاتیک
+app.use(express.static(rootPath));
+
+// روت اصلی
+app.get('/', (req, res) => {
+  res.sendFile(path.join(rootPath, 'index.html'));
+});
+
+// پشتیبانی از SPA Routing (هدایت تمام درخواست‌ها به ایندکس)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const file = path.join(rootPath, 'index.html');
+  res.sendFile(file, (err) => {
+    if (err) {
+      console.error('File send error:', err);
+      res.status(404).send('فایل index.html یافت نشد. مسیر را چک کنید.');
+    }
+  });
 });
 
 app.listen(PORT, () => {
-  console.log(`Nikjoo Market is live on port ${PORT}`);
+  console.log(`Application is running on port ${PORT}`);
 });

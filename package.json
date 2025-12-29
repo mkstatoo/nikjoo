@@ -1,8 +1,8 @@
 
 {
-  "name": "nikjoo-marketplace",
-  "version": "1.0.0",
-  "description": "Nikjoo Marketplace Production Server",
+  "name": "nikjoo-market",
+  "version": "1.0.2",
+  "description": "Nikjoo Marketplace Production Environment",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,6 +10,7 @@
   "dependencies": {
     "express": "^4.18.2"
   },
-  "author": "Nikjoo Team",
-  "license": "MIT"
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
