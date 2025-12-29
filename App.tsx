@@ -1,20 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import ListingDetail from './pages/ListingDetail';
-import PostAd from './pages/PostAd';
-import Chat from './pages/Chat';
-import Profile from './pages/Profile';
-import About from './pages/About';
-import LocationSelector from './pages/LocationSelector';
-import LaunchGuide from './pages/LaunchGuide';
-import AuthModal from './components/AuthModal';
-import Bookmarks from './pages/Bookmarks';
-import Legal from './pages/Legal';
-import { MOCK_LISTINGS, MOCK_USERS, MOCK_BANNERS } from './constants';
-import { User, Listing, Banner, SavedSearch } from './types';
-import { db } from './services/db';
+import Navbar from './components/Navbar.tsx';
+import Home from './pages/Home.tsx';
+import ListingDetail from './pages/ListingDetail.tsx';
+import PostAd from './pages/PostAd.tsx';
+import Chat from './pages/Chat.tsx';
+import Profile from './pages/Profile.tsx';
+import About from './pages/About.tsx';
+import LocationSelector from './pages/LocationSelector.tsx';
+import LaunchGuide from './pages/LaunchGuide.tsx';
+import AuthModal from './components/AuthModal.tsx';
+import Bookmarks from './pages/Bookmarks.tsx';
+import Legal from './pages/Legal.tsx';
+import { MOCK_LISTINGS, MOCK_USERS, MOCK_BANNERS } from './constants.tsx';
+import { User, Listing, Banner } from './types.ts';
+import { db } from './services/db.ts';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -37,7 +37,6 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!currentUser);
   const [allListings, setAllListings] = useState<Listing[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [banners, setBanners] = useState<Banner[]>(MOCK_BANNERS);
 
   useEffect(() => {
@@ -52,23 +51,25 @@ const App: React.FC = () => {
       } catch (err) {
         console.error("Data load failed:", err);
       } finally {
-        // حداقل ۲ ثانیه مکث برای اسپلش اسکرین
         setTimeout(() => setIsSplashActive(false), 2000);
       }
     };
     loadData();
   }, []);
 
-  // Sync with LocalStorage
   useEffect(() => {
     if (currentUser) localStorage.setItem('nikjoo_user', JSON.stringify(currentUser));
     else localStorage.removeItem('nikjoo_user');
+    setIsLoggedIn(!!currentUser);
   }, [currentUser]);
 
   const toggleBookmark = async (id: string) => {
     const updated = await db.toggleBookmark(id);
     setBookmarkedIds(updated);
   };
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{page: string, options?: any} | null>(null);
 
   const navigateTo = (page: string, options?: any) => {
     if (options?.forceAuth && !isLoggedIn) {
@@ -83,9 +84,6 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{page: string, options?: any} | null>(null);
-
   const handleAuthSuccess = (phone: string) => {
     const foundUser = MOCK_USERS.find(u => u.phone === phone) || {
        id: 'u_' + Date.now(),
@@ -98,7 +96,6 @@ const App: React.FC = () => {
        preferences: { viewMode: 'list', theme: 'light', notifications: true }
     };
     setCurrentUser(foundUser as User);
-    setIsLoggedIn(true);
     if (pendingAction) {
       navigateTo(pendingAction.page, pendingAction.options);
       setPendingAction(null);
@@ -111,12 +108,7 @@ const App: React.FC = () => {
         <div className="relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-700">
            <div className="w-32 h-32 mb-8 animate-logo flex items-center justify-center">
              {!logoError ? (
-               <img 
-                 src="logo.png" 
-                 alt="Nikjoo Logo" 
-                 className="w-full h-full object-contain"
-                 onError={() => setLogoError(true)}
-               />
+               <img src="logo.png" alt="Nikjoo Logo" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
              ) : (
                <div className="w-full h-full bg-red-700 rounded-[2rem] flex items-center justify-center shadow-2xl">
                  <span className="text-white text-5xl font-black">N</span>
@@ -154,11 +146,7 @@ const App: React.FC = () => {
         />
       )}
 
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-      />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSuccess={handleAuthSuccess} />
 
       <main className="flex-1 overflow-x-hidden">
         {(() => {

@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { CATEGORIES, SUB_CATEGORIES } from '../constants';
-import { suggestListingOptimization, moderateContent } from '../services/gemini';
-import { User, Listing } from '../types';
+import { CATEGORIES, SUB_CATEGORIES } from '../constants.tsx';
+import { suggestListingOptimization, moderateContent } from '../services/gemini.ts';
+import { User, Listing } from '../types.ts';
 
 interface InputWrapperProps {
   label: string;
@@ -32,40 +32,29 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  
-  // Anti-Bot & Security States
   const [hpValue, setHpValue] = useState(''); 
   const [formStartTime] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [locationName, setLocationName] = useState(defaultLocation === 'کل ایران' ? 'تهران' : defaultLocation);
   const [showMapModal, setShowMapModal] = useState(false);
   const [images, setImages] = useState<string[]>([]);
-  const [mainImageIndex, setMainImageIndex] = useState(0); // ایندکس عکس اصلی
+  const [mainImageIndex, setMainImageIndex] = useState(0);
   const [isOptimizing, setIsOptimizing] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       const newImages = Array.from(files).map((file: File) => URL.createObjectURL(file));
-      setImages(prev => {
-        const updated = [...prev, ...newImages].slice(0, 10);
-        return updated;
-      });
+      setImages(prev => [...prev, ...newImages].slice(0, 10));
     }
   };
 
   const removeImage = (idx: number) => {
     setImages(prev => {
       const filtered = prev.filter((_, i) => i !== idx);
-      // اگر عکس اصلی حذف شد یا ایندکس جابجا شد، مدیریت شود
-      if (mainImageIndex === idx) {
-        setMainImageIndex(0);
-      } else if (mainImageIndex > idx) {
-        setMainImageIndex(mainImageIndex - 1);
-      }
+      if (mainImageIndex === idx) setMainImageIndex(0);
+      else if (mainImageIndex > idx) setMainImageIndex(mainImageIndex - 1);
       return filtered;
     });
   };
@@ -83,25 +72,18 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Honeypot check
     if (hpValue) return;
-
-    // Submission timing check (Human buffer)
     const timeTaken = (Date.now() - formStartTime) / 1000;
     if (timeTaken < 5) {
       alert("سیستم امنیتی: لطفاً فرم را با دقت بیشتری تکمیل کنید.");
       return;
     }
-
     if (!category || !subCategory || !title || !price) {
       alert("لطفاً تمام فیلدهای ضروری (*) را تکمیل کنید.");
       return;
     }
 
     setIsSubmitting(true);
-
-    // AI Content Moderation
     const modResult = await moderateContent(`${title} ${description}`);
     if (!modResult.isSafe) {
       alert(`⚠️ محتوای آگهی تایید نشد: ${modResult.reason}`);
@@ -109,7 +91,6 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
       return;
     }
 
-    // جابجا کردن عکس اصلی به ابتدای آرایه برای نمایش در لیست‌ها
     let finalImages = [...images];
     if (finalImages.length > 0) {
       const mainImg = finalImages.splice(mainImageIndex, 1)[0];
@@ -118,7 +99,6 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
       finalImages = ['https://picsum.photos/seed/placeholder/400/300'];
     }
 
-    // Fixed: Added missing required properties 'views' and 'status' to the new Listing object.
     const newAd: Listing = {
       id: 'l' + Date.now(),
       title,
@@ -137,13 +117,12 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
     };
 
     onAddListing(newAd);
-    alert("آگهی شما با موفقیت ثبت و منتشر شد.");
+    alert("آگهی شما با موفقیت ثبت شد.");
     onComplete();
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32" dir="rtl">
-      {/* Honeypot field for bots */}
       <div className="opacity-0 absolute -z-50 pointer-events-none h-0 w-0 overflow-hidden">
         <input type="text" value={hpValue} onChange={(e) => setHpValue(e.target.value)} tabIndex={-1} autoComplete="off" />
       </div>
@@ -158,13 +137,11 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         <div className="md:col-span-2 space-y-12">
-          
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-2xl bg-red-50 flex items-center justify-center text-red-700 text-xs font-black">۱</div>
               <h2 className="text-lg font-black text-gray-900">دسته‌بندی و محل</h2>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputWrapper label="دسته اصلی" required>
                 <select value={category} onChange={(e) => { setCategory(e.target.value); setSubCategory(''); }} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none">
@@ -172,7 +149,6 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
                   {CATEGORIES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </InputWrapper>
-
               {category && (
                 <InputWrapper label="زیردسته" required>
                   <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} className="w-full bg-transparent outline-none text-sm font-bold text-gray-800 appearance-none">
@@ -182,7 +158,6 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
                 </InputWrapper>
               )}
             </div>
-
             <div onClick={() => setShowMapModal(true)} className="p-5 rounded-3xl bg-gray-50 border border-gray-100 cursor-pointer hover:border-red-400 transition-all">
               <div className="flex items-center gap-4">
                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-red-700">📍</div>
@@ -199,62 +174,33 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
               <div className="w-8 h-8 rounded-2xl bg-red-50 flex items-center justify-center text-red-700 text-xs font-black">۲</div>
               <h2 className="text-lg font-black text-gray-900">محتوای آگهی</h2>
              </div>
-
              <InputWrapper label="عنوان آگهی" required>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً: سامسونگ S23 Ultra در حد نو" className="w-full bg-transparent outline-none text-sm font-black text-gray-900 text-right" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً: سامسونگ S23 Ultra" className="w-full bg-transparent outline-none text-sm font-black text-gray-900 text-right" />
              </InputWrapper>
-             
              <div className="bg-gray-50 border-2 border-gray-100 rounded-3xl p-5 focus-within:border-red-600 transition-all">
                 <label className="block text-[10px] font-black text-red-700 mb-2 uppercase text-right">قیمت نهایی (تومان) *</label>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="مبلغ را به عدد وارد کنید" className="w-full bg-transparent outline-none text-2xl font-black text-gray-900 text-right" />
+                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="مبلغ را وارد کنید" className="w-full bg-transparent outline-none text-2xl font-black text-gray-900 text-right" />
              </div>
-
-             <InputWrapper label="توضیحات تکمیلی">
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} placeholder="ویژگی‌ها، معایب و مزایای کالا..." className="w-full bg-transparent outline-none text-sm font-medium text-gray-700 mt-2 resize-none leading-7 text-right" />
+             <InputWrapper label="توضیحات">
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} placeholder="ویژگی‌ها..." className="w-full bg-transparent outline-none text-sm font-medium text-gray-700 mt-2 resize-none leading-7 text-right" />
              </InputWrapper>
-
              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-black text-gray-900">تصاویر (تا ۱۰ عدد)</label>
-                  <span className="text-[10px] text-gray-400 font-bold">برای انتخاب عکس اصلی، روی آن کلیک کنید.</span>
                 </div>
                 <div className="flex flex-wrap gap-4">
                   {images.map((img, idx) => (
-                    <div 
-                      key={idx} 
-                      onClick={() => setMainImageIndex(idx)}
-                      className={`w-28 h-28 rounded-2xl overflow-hidden relative border-4 transition-all cursor-pointer group ${mainImageIndex === idx ? 'border-red-700 shadow-lg scale-105' : 'border-gray-100'}`}
-                    >
+                    <div key={idx} onClick={() => setMainImageIndex(idx)} className={`w-28 h-28 rounded-2xl overflow-hidden relative border-4 transition-all cursor-pointer group ${mainImageIndex === idx ? 'border-red-700 shadow-lg scale-105' : 'border-gray-100'}`}>
                       <img src={img} className="w-full h-full object-cover" alt="" />
-                      
-                      {/* Badge for Main Image */}
-                      {mainImageIndex === idx && (
-                        <div className="absolute top-0 left-0 right-0 bg-red-700 text-white text-[8px] font-black py-1 text-center uppercase tracking-tighter">
-                          عکس اصلی
-                        </div>
-                      )}
-
-                      {/* Delete Button */}
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }} 
-                        className="absolute bottom-1 right-1 bg-black/60 text-white p-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
-                      >
+                      {mainImageIndex === idx && <div className="absolute top-0 left-0 right-0 bg-red-700 text-white text-[8px] font-black py-1 text-center">عکس اصلی</div>}
+                      <button onClick={(e) => { e.stopPropagation(); removeImage(idx); }} className="absolute bottom-1 right-1 bg-black/60 text-white p-1.5 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-all">
                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth="3"/></svg>
                       </button>
-
-                      {/* Selection Overlay */}
-                      {mainImageIndex !== idx && (
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                           <span className="text-white text-[9px] font-black bg-black/40 px-2 py-1 rounded-lg">انتخاب به عنوان اصلی</span>
-                        </div>
-                      )}
                     </div>
                   ))}
-                  
                   {images.length < 10 && (
                     <button onClick={() => fileInputRef.current?.click()} className="w-28 h-28 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 hover:border-red-700 hover:bg-red-50 transition-all text-gray-300 hover:text-red-700">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2.5"/></svg>
-                      <span className="text-[9px] font-black">افزودن عکس</span>
                     </button>
                   )}
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} hidden multiple accept="image/*" />
@@ -277,11 +223,9 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
                 <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center text-xl">🛡️</div>
                 <h3 className="font-black text-lg">امنیت هوشمند</h3>
              </div>
-             <p className="text-[11px] text-gray-400 leading-6 mb-8">
-                نیکجو از مدل‌های زبانی Gemini برای شناسایی آگهی‌های اسپم و کلاهبرداری استفاده می‌کند.
-             </p>
+             <p className="text-[11px] text-gray-400 leading-6 mb-8">نیکجو از مدل‌های زبانی Gemini برای شناسایی آگهی‌های اسپم و کلاهبرداری استفاده می‌کند.</p>
              <button onClick={handleAiOptimize} disabled={isOptimizing || !title} className="w-full bg-white/10 text-white font-black py-4 rounded-2xl disabled:opacity-50 hover:bg-white/20 transition-all">
-                {isOptimizing ? 'در حال تحلیل محتوا...' : 'بهبود آگهی با Gemini AI'}
+                {isOptimizing ? 'تحلیل...' : 'بهبود با AI'}
              </button>
           </div>
         </div>
@@ -295,12 +239,12 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
                  <button onClick={() => setShowMapModal(false)} className="text-sm font-bold text-gray-400">بستن</button>
               </div>
               <div className="flex-1 bg-gray-100 relative">
-                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-8 h-8 bg-red-700 rounded-full border-4 border-white shadow-xl animate-bounce"></div>
                  </div>
               </div>
               <div className="p-6">
-                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl shadow-lg">تایید موقعیت</button>
+                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl">تایید موقعیت</button>
               </div>
            </div>
         </div>
