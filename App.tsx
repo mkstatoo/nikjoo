@@ -26,7 +26,6 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [legalInitialTab, setLegalInitialTab] = useState<'tos' | 'privacy'>('tos');
   
-  // Data States
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('nikjoo_user');
     return saved ? JSON.parse(saved) : null;
@@ -43,7 +42,6 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : MOCK_BANNERS;
   });
 
-  // Initialization
   useEffect(() => {
     const loadData = async () => {
       const [listings, bookmarks] = await Promise.all([
@@ -53,7 +51,7 @@ const App: React.FC = () => {
       setAllListings(listings);
       setBookmarkedIds(bookmarks);
       
-      const timer = setTimeout(() => setIsSplashActive(false), 2000);
+      const timer = setTimeout(() => setIsSplashActive(false), 2500);
       return () => clearTimeout(timer);
     };
     loadData();
@@ -82,7 +80,7 @@ const App: React.FC = () => {
       return;
     }
     if (savedSearches.length >= 3) {
-      alert("⚠️ محدودیت امنیتی: شما حداکثر مجاز به ثبت ۳ هشدار فعال هستید.");
+      alert("⚠️ محدودیت: شما حداکثر ۳ هشدار فعال می‌توانید داشته باشید.");
       return;
     }
     const newAlert: SavedSearch = {
@@ -92,7 +90,7 @@ const App: React.FC = () => {
       createdAt: 'امروز'
     };
     setSavedSearches([newAlert, ...savedSearches]);
-    alert("✅ هشدار جستجو با موفقیت ثبت شد.");
+    alert("✅ هشدار جستجو فعال شد.");
   };
 
   const handleRemoveAlert = (id: string) => {
@@ -116,7 +114,6 @@ const App: React.FC = () => {
   const [pendingAction, setPendingAction] = useState<{page: string, options?: any} | null>(null);
 
   const handleAuthSuccess = (phone: string) => {
-    // Added default preferences to ensure the foundUser object matches the User interface
     const foundUser = MOCK_USERS.find(u => u.phone === phone) || {
        id: 'u_' + Date.now(),
        name: phone === '09120000000' ? 'مدیر سیستم' : 'کاربر جدید',
@@ -138,7 +135,6 @@ const App: React.FC = () => {
 
   const handleListingClick = async (id: string) => {
     await db.incrementView(id);
-    // Update local state to show view count change if needed
     setAllListings(prev => prev.map(l => l.id === id ? { ...l, views: (l.views || 0) + 1 } : l));
     setSelectedListingId(id);
     setCurrentPage('detail');
@@ -154,11 +150,19 @@ const App: React.FC = () => {
 
   if (isSplashActive) {
     return (
-      <div className="fixed inset-0 z-[300] bg-white flex flex-col items-center justify-center">
-        <div className="relative flex flex-col items-center animate-in zoom-in-95 duration-700">
-           <div className="w-20 h-20 bg-red-700 rounded-[2rem] flex items-center justify-center text-white text-4xl font-black shadow-2xl mb-6 rotate-3">ن</div>
-           <h1 className="text-2xl font-black text-gray-900 tracking-tighter mb-2">نیکجو مارکت</h1>
-           <p className="text-[10px] font-black text-gray-300 tracking-[0.3em] uppercase italic">Free for ever</p>
+      <div className="fixed inset-0 z-[300] bg-white flex flex-col items-center justify-center overflow-hidden">
+        <div className="relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-1000">
+           {/* استفاده از لوگوی جدید در اسپلش اسکرین */}
+           <div className="w-32 h-32 mb-8 animate-logo">
+             <img src="logo.png" alt="Nikjoo Logo" className="w-full h-full object-contain" />
+           </div>
+           <h1 className="text-3xl font-black text-gray-900 tracking-tighter mb-2">نیکجو مارکت</h1>
+           <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce"></div>
+              <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+              <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+           </div>
+           <p className="fixed bottom-12 text-[9px] font-black text-gray-300 tracking-[0.4em] uppercase">Powered by Gemini AI</p>
         </div>
       </div>
     );

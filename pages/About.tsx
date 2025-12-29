@@ -45,9 +45,12 @@ const About: React.FC<AboutProps> = ({ onBack }) => {
 
       <div className="max-w-xl mx-auto px-6 py-12">
         <div className="text-center mb-16">
-          <div className="w-24 h-24 bg-red-700 rounded-3xl mx-auto flex items-center justify-center text-white text-5xl font-black shadow-xl rotate-3 mb-6">ن</div>
+          {/* استفاده از لوگوی رسمی جدید */}
+          <div className="w-32 h-32 mx-auto mb-6 drop-shadow-2xl">
+            <img src="logo.png" alt="Nikjoo Brand" className="w-full h-full object-contain" />
+          </div>
           <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-4">نیکجو مارکت</h1>
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">The Future of Local Trading</p>
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">بازار هوشمند معاملات محلی</p>
         </div>
 
         <div className="space-y-16">
@@ -86,20 +89,6 @@ const About: React.FC<AboutProps> = ({ onBack }) => {
               <div className="text-3xl mb-3">🛡️</div>
               <h4 className="font-black text-gray-900 mb-2">امنیت بالا</h4>
               <p className="text-xs text-gray-500 leading-6">سیستم‌های پیشرفته تشخیص کلاهبرداری و احراز هویت هوشمند.</p>
-            </div>
-          </div>
-
-          <div className="rounded-[2.5rem] overflow-hidden shadow-2xl relative h-64 border-4 border-white">
-            <img 
-              src="https://images.unsplash.com/photo-1556742044-3c52d6e88c62?auto=format&fit=crop&q=80&w=1000" 
-              alt="Marketplace Team" 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-red-900/80 to-transparent flex items-end p-8 text-white">
-               <div>
-                 <p className="font-black text-lg">همراه شما در هر معامله</p>
-                 <p className="text-xs opacity-80">تیم پشتیبانی نیکجو ۲۴ ساعته در کنار شماست.</p>
-               </div>
             </div>
           </div>
 
