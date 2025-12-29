@@ -28,19 +28,31 @@ const App: React.FC = () => {
   const [logoError, setLogoError] = useState(false);
   
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('nikjoo_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('nikjoo_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [isLoggedIn, setIsLoggedIn] = useState(!!currentUser);
   const [allListings, setAllListings] = useState<Listing[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => {
-    const saved = localStorage.getItem('nikjoo_alerts');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('nikjoo_alerts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
   const [banners, setBanners] = useState<Banner[]>(() => {
-    const saved = localStorage.getItem('nikjoo_banners');
-    return saved ? JSON.parse(saved) : MOCK_BANNERS;
+    try {
+      const saved = localStorage.getItem('nikjoo_banners');
+      return saved ? JSON.parse(saved) : MOCK_BANNERS;
+    } catch {
+      return MOCK_BANNERS;
+    }
   });
 
   useEffect(() => {
@@ -55,8 +67,11 @@ const App: React.FC = () => {
       } catch (err) {
         console.error("Error loading initial data:", err);
       } finally {
-        // حداقل 2 ثانیه نمایش اسپلش برای زیبایی
-        setTimeout(() => setIsSplashActive(false), 2000);
+        // حداقل ۲ ثانیه مکث برای زیبایی بصری و لود شدن فونت‌ها
+        const timer = setTimeout(() => {
+          setIsSplashActive(false);
+        }, 2000);
+        return () => clearTimeout(timer);
       }
     };
     loadData();
@@ -157,7 +172,6 @@ const App: React.FC = () => {
     return (
       <div className="fixed inset-0 z-[300] bg-white flex flex-col items-center justify-center overflow-hidden">
         <div className="relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-700">
-           
            <div className="w-32 h-32 mb-8 animate-logo flex items-center justify-center">
              {!logoError ? (
                <img 
