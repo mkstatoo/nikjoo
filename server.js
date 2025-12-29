@@ -3,25 +3,18 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// در هاست‌های اشتراکی، پورت توسط پلتفرم (Passenger) تعیین می‌شود
+// در cPanel، پورت توسط Phusion Passenger مدیریت می‌شود
 const PORT = process.env.PORT || 3000;
 
-// مسیر ریشه پروژه - در cPanel معمولاً فایل‌ها در ریشه هستند
-const rootPath = __dirname;
+// مسیر فایل‌های استاتیک
+app.use(express.static(__dirname));
 
-// سرو کردن فایل‌های استاتیک (CSS, JS, Images)
-app.use(express.static(rootPath));
-
-// روت اصلی
-app.get('/', (req, res) => {
-  res.sendFile(path.join(rootPath, 'index.html'));
-});
-
-// مدیریت تمام روت‌های دیگر برای اپلیکیشن‌های تک‌صفحه‌ای (SPA)
+// روت اصلی برای SPA
 app.get('*', (req, res) => {
-  res.sendFile(path.join(rootPath, 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// اجرای سرور
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Nikjoo is running on port ${PORT}`);
 });
