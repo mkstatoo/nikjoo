@@ -1,8 +1,8 @@
 
 {
   "name": "nikjoo-market",
-  "version": "1.0.2",
-  "description": "Nikjoo Marketplace Production Environment",
+  "version": "1.0.4",
+  "description": "Nikjoo Marketplace Production",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

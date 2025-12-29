@@ -31,29 +31,14 @@ const App: React.FC = () => {
     try {
       const saved = localStorage.getItem('nikjoo_user');
       return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   });
+
   const [isLoggedIn, setIsLoggedIn] = useState(!!currentUser);
   const [allListings, setAllListings] = useState<Listing[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => {
-    try {
-      const saved = localStorage.getItem('nikjoo_alerts');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [banners, setBanners] = useState<Banner[]>(() => {
-    try {
-      const saved = localStorage.getItem('nikjoo_banners');
-      return saved ? JSON.parse(saved) : MOCK_BANNERS;
-    } catch {
-      return MOCK_BANNERS;
-    }
-  });
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(MOCK_BANNERS);
 
   useEffect(() => {
     const loadData = async () => {
@@ -65,28 +50,19 @@ const App: React.FC = () => {
         setAllListings(listings);
         setBookmarkedIds(bookmarks);
       } catch (err) {
-        console.error("Error loading initial data:", err);
+        console.error("Data load failed:", err);
       } finally {
-        // حداقل ۲ ثانیه مکث برای زیبایی بصری و لود شدن فونت‌ها
-        const timer = setTimeout(() => {
-          setIsSplashActive(false);
-        }, 2000);
-        return () => clearTimeout(timer);
+        // حداقل ۲ ثانیه مکث برای اسپلش اسکرین
+        setTimeout(() => setIsSplashActive(false), 2000);
       }
     };
     loadData();
   }, []);
 
+  // Sync with LocalStorage
   useEffect(() => {
-    localStorage.setItem('nikjoo_alerts', JSON.stringify(savedSearches));
-  }, [savedSearches]);
-
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('nikjoo_user', JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem('nikjoo_user');
-    }
+    if (currentUser) localStorage.setItem('nikjoo_user', JSON.stringify(currentUser));
+    else localStorage.removeItem('nikjoo_user');
   }, [currentUser]);
 
   const toggleBookmark = async (id: string) => {
@@ -94,30 +70,7 @@ const App: React.FC = () => {
     setBookmarkedIds(updated);
   };
 
-  const handleAddAlert = (query: string) => {
-    if (!isLoggedIn) {
-      setShowAuthModal(true);
-      return;
-    }
-    if (savedSearches.length >= 3) {
-      alert("⚠️ محدودیت: شما حداکثر ۳ هشدار فعال می‌توانید داشته باشید.");
-      return;
-    }
-    const newAlert: SavedSearch = {
-      id: 'a' + Date.now(),
-      query: query || 'همه آگهی‌ها',
-      location: selectedLocations[0] || 'سراسر ایران',
-      createdAt: 'امروز'
-    };
-    setSavedSearches([newAlert, ...savedSearches]);
-    alert("✅ هشدار جستجو فعال شد.");
-  };
-
-  const handleRemoveAlert = (id: string) => {
-    setSavedSearches(prev => prev.filter(s => s.id !== id));
-  };
-
-  const navigateTo = (page: string, options?: { chatTab?: 'my' | 'ai', forceAuth?: boolean, legalTab?: 'tos' | 'privacy' }) => {
+  const navigateTo = (page: string, options?: any) => {
     if (options?.forceAuth && !isLoggedIn) {
       setPendingAction({ page, options: { ...options, forceAuth: false } });
       setShowAuthModal(true);
@@ -136,13 +89,12 @@ const App: React.FC = () => {
   const handleAuthSuccess = (phone: string) => {
     const foundUser = MOCK_USERS.find(u => u.phone === phone) || {
        id: 'u_' + Date.now(),
-       name: phone === '09120000000' ? 'مدیر سیستم' : 'کاربر جدید',
+       name: 'کاربر جدید',
        avatar: `https://picsum.photos/seed/${phone}/100/100`,
-       joinedDate: 'اسفند ۱۴۰۳',
+       joinedDate: '۱۴۰۳',
        rating: 5.0,
        role: phone === '09120000000' ? 'admin' : 'user',
        phone,
-       isVerified: true,
        preferences: { viewMode: 'list', theme: 'light', notifications: true }
     };
     setCurrentUser(foundUser as User);
@@ -150,21 +102,6 @@ const App: React.FC = () => {
     if (pendingAction) {
       navigateTo(pendingAction.page, pendingAction.options);
       setPendingAction(null);
-    }
-  };
-
-  const handleListingClick = async (id: string) => {
-    await db.incrementView(id);
-    setAllListings(prev => prev.map(l => l.id === id ? { ...l, views: (l.views || 0) + 1 } : l));
-    setSelectedListingId(id);
-    setCurrentPage('detail');
-    window.scrollTo(0, 0);
-  };
-
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.trim()) {
-      await db.addSearchQuery(query);
     }
   };
 
@@ -186,15 +123,12 @@ const App: React.FC = () => {
                </div>
              )}
            </div>
-
            <h1 className="text-3xl font-black text-gray-900 tracking-tighter mb-2">نیکجو مارکت</h1>
-           
            <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce"></div>
               <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce [animation-delay:0.2s]"></div>
               <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce [animation-delay:0.4s]"></div>
            </div>
-           
            <p className="fixed bottom-12 text-[9px] font-black text-gray-300 tracking-[0.4em] uppercase">Powered by Gemini AI</p>
         </div>
       </div>
@@ -208,7 +142,7 @@ const App: React.FC = () => {
           onLocationClick={() => setShowLocationSelector(true)} 
           selectedLocations={selectedLocations} 
           searchQuery={searchQuery}
-          onSearchChange={handleSearch}
+          onSearchChange={(q) => { setSearchQuery(q); db.addSearchQuery(q); }}
         />
       )}
       
@@ -222,9 +156,8 @@ const App: React.FC = () => {
 
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => { setShowAuthModal(false); setPendingAction(null); }}
+        onClose={() => setShowAuthModal(false)}
         onSuccess={handleAuthSuccess}
-        onNavigateToLegal={(tab) => { setShowAuthModal(false); navigateTo('legal', { legalTab: tab }); }}
       />
 
       <main className="flex-1 overflow-x-hidden">
@@ -234,12 +167,16 @@ const App: React.FC = () => {
               return <Home 
                 listings={allListings}
                 banners={banners}
-                onListingClick={handleListingClick} 
+                onListingClick={async (id) => {
+                   await db.incrementView(id);
+                   setSelectedListingId(id);
+                   setCurrentPage('detail');
+                }} 
                 selectedLocations={selectedLocations} 
                 searchQuery={searchQuery}
                 bookmarkedIds={bookmarkedIds}
                 onToggleBookmark={toggleBookmark}
-                onAddAlert={() => handleAddAlert(searchQuery)}
+                onAddAlert={() => {}}
               />;
             case 'detail':
               const listing = allListings.find(l => l.id === selectedListingId);
@@ -247,38 +184,10 @@ const App: React.FC = () => {
               return <ListingDetail 
                 listing={listing} 
                 isAdmin={currentUser?.role === 'admin' || currentUser?.id === listing.seller.id}
-                onAdminDelete={async () => {
-                  if (window.confirm("حذف آگهی؟")) {
-                    await db.deleteListing(listing.id);
-                    setAllListings(prev => prev.filter(l => l.id !== listing.id));
-                    navigateTo('home');
-                  }
-                }}
-                onBack={() => navigateTo('home')} 
+                onBack={() => setCurrentPage('home')} 
                 onChat={() => navigateTo('chat', { forceAuth: true })}
                 isBookmarked={bookmarkedIds.includes(listing.id)}
                 onToggleBookmark={() => toggleBookmark(listing.id)}
-              />;
-            case 'bookmarks':
-              return <Bookmarks 
-                listings={allListings}
-                onListingClick={handleListingClick}
-                bookmarkedIds={bookmarkedIds}
-                onToggleBookmark={toggleBookmark}
-                savedSearches={savedSearches}
-                onRemoveAlert={handleRemoveAlert}
-              />;
-            case 'post':
-              return <PostAd 
-                onComplete={() => {
-                  db.getListings().then(setAllListings);
-                  navigateTo('home');
-                }} 
-                onAddListing={async (ad) => {
-                  await db.saveListing(ad);
-                }}
-                currentUser={currentUser!}
-                defaultLocation={selectedLocations[0] || 'تهران'} 
               />;
             case 'chat':
               return <Chat initialTab={initialChatTab} isAdmin={currentUser?.role === 'admin'} />;
@@ -289,46 +198,56 @@ const App: React.FC = () => {
                 banners={banners}
                 setBanners={setBanners}
                 onLogin={() => setShowAuthModal(true)}
-                onLogout={() => { setCurrentUser(null); setIsLoggedIn(false); navigateTo('home'); }}
-                onNavigateToAbout={() => navigateTo('about')} 
+                onLogout={() => { setCurrentUser(null); setIsLoggedIn(false); setCurrentPage('home'); }}
+                onNavigateToAbout={() => setCurrentPage('about')} 
                 onNavigateToSupport={() => navigateTo('chat', { chatTab: 'ai' })}
-                onAdClick={handleListingClick}
+                onAdClick={(id) => { setSelectedListingId(id); setCurrentPage('detail'); }}
                 onNavigateToPost={() => navigateTo('post', { forceAuth: true })}
-                onNavigateToLaunch={() => navigateTo('launch-roadmap')}
-                onNavigateToBookmarks={() => navigateTo('bookmarks')}
+                onNavigateToLaunch={() => setCurrentPage('launch-roadmap')}
+                onNavigateToBookmarks={() => setCurrentPage('bookmarks')}
               />;
-            case 'about':
-              return <About onBack={() => navigateTo('profile')} />;
-            case 'launch-roadmap':
-              return <LaunchGuide onBack={() => navigateTo('profile')} />;
-            case 'legal':
-              return <Legal onBack={() => navigateTo('profile')} initialTab={legalInitialTab} />;
-            default:
-              return null;
+            case 'post':
+              return <PostAd 
+                onComplete={() => setCurrentPage('home')} 
+                onAddListing={async (ad) => { await db.saveListing(ad); db.getListings().then(setAllListings); }}
+                currentUser={currentUser!}
+                defaultLocation={selectedLocations[0] || 'تهران'} 
+              />;
+            case 'bookmarks':
+              return <Bookmarks 
+                listings={allListings}
+                onListingClick={(id) => { setSelectedListingId(id); setCurrentPage('detail'); }}
+                bookmarkedIds={bookmarkedIds}
+                onToggleBookmark={toggleBookmark}
+                savedSearches={[]}
+                onRemoveAlert={() => {}}
+              />;
+            case 'about': return <About onBack={() => setCurrentPage('profile')} />;
+            case 'launch-roadmap': return <LaunchGuide onBack={() => setCurrentPage('profile')} />;
+            case 'legal': return <Legal onBack={() => setCurrentPage('profile')} initialTab={legalInitialTab} />;
+            default: return null;
           }
         })()}
       </main>
       
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 flex justify-around items-center px-2 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-        <button onClick={() => navigateTo('home')} className={`flex flex-col items-center gap-1 ${currentPage === 'home' ? 'text-red-700' : 'text-gray-400'}`}>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 flex justify-around items-center px-2 py-2 shadow-lg">
+        <button onClick={() => setCurrentPage('home')} className={`flex flex-col items-center gap-1 ${currentPage === 'home' ? 'text-red-700' : 'text-gray-400'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
           <span className="text-[10px] font-bold">آگهی‌ها</span>
         </button>
-        <button onClick={() => navigateTo('bookmarks')} className={`flex flex-col items-center gap-1 ${currentPage === 'bookmarks' ? 'text-red-700' : 'text-gray-400'}`}>
-          <svg className="w-5 h-5" fill={currentPage === 'bookmarks' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+        <button onClick={() => setCurrentPage('bookmarks')} className={`flex flex-col items-center gap-1 ${currentPage === 'bookmarks' ? 'text-red-700' : 'text-gray-400'}`}>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
           <span className="text-[10px] font-bold">نشان‌ها</span>
         </button>
-        <button onClick={() => navigateTo('post', { forceAuth: true })} className="flex flex-col items-center gap-1 text-gray-400">
-          <div className={`p-1 border-2 rounded-lg -mt-1 ${currentPage === 'post' ? 'border-red-700 text-red-700' : 'border-gray-400'}`}>
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-          </div>
-          <span className={`text-[10px] font-bold ${currentPage === 'post' ? 'text-red-700' : ''}`}>ثبت آگهی</span>
+        <button onClick={() => navigateTo('post', { forceAuth: true })} className={`flex flex-col items-center gap-1 ${currentPage === 'post' ? 'text-red-700' : 'text-gray-400'}`}>
+          <div className="p-1 border-2 rounded-lg -mt-1"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg></div>
+          <span className="text-[10px] font-bold">ثبت آگهی</span>
         </button>
         <button onClick={() => navigateTo('chat', { forceAuth: true })} className={`flex flex-col items-center gap-1 ${currentPage === 'chat' ? 'text-red-700' : 'text-gray-400'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
           <span className="text-[10px] font-bold">چت</span>
         </button>
-        <button onClick={() => navigateTo('profile')} className={`flex flex-col items-center gap-1 ${['profile', 'about', 'launch-roadmap', 'legal'].includes(currentPage) ? 'text-red-700' : 'text-gray-400'}`}>
+        <button onClick={() => setCurrentPage('profile')} className={`flex flex-col items-center gap-1 ${['profile', 'about', 'legal'].includes(currentPage) ? 'text-red-700' : 'text-gray-400'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           <span className="text-[10px] font-bold">حساب من</span>
         </button>
