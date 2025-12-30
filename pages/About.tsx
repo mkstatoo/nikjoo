@@ -94,7 +94,7 @@ const About: React.FC<AboutProps> = ({ onBack }) => {
 
           <section className="text-center pt-8 border-t border-gray-100">
             <p className="text-gray-400 text-xs font-bold leading-6 mb-2">
-              ساخته شده با ❤️ در تهران
+              ساخته شده با ❤️ در مشهد
             </p>
             <p className="text-gray-300 text-[10px] uppercase font-black tracking-widest">© 2025 Nikjoo Market Group</p>
           </section>
