@@ -8,11 +8,11 @@ const PORT = process.env.PORT || 3000;
 
 app.use(compression());
 
-// تنظیم هدر صحیح برای ماژول‌های جاوااسکریپت و تایپ‌اسکریپت
+// تنظیم هدر Content-Type برای پسوندهای خاص قبل از سرو فایل‌های استاتیک
 app.use((req, res, next) => {
     const ext = path.extname(req.url);
-    if (['.tsx', '.ts', '.jsx', '.js'].includes(ext)) {
-        res.setHeader('Content-Type', 'text/javascript');
+    if (['.tsx', '.ts', '.jsx'].includes(ext)) {
+        res.setHeader('Content-Type', 'application/javascript');
     }
     next();
 });
@@ -21,19 +21,19 @@ app.use((req, res, next) => {
 app.use(express.static(__dirname));
 
 app.get('*', (req, res) => {
-    // جلوگیری از روتینگ اشتباه برای فایل‌های فیزیکی
+    // اگر درخواست فایل فیزیکی است (مثل تصاویر یا اسکریپت‌ها) و تا اینجا پیدا نشده، ۴۰۴ بده
     if (path.extname(req.url)) {
         return res.status(404).send('Not Found');
     }
 
     const indexPath = path.join(__dirname, 'index.html');
     if (!fs.existsSync(indexPath)) {
-        return res.status(500).send('Critical Error: index.html not found in ' + __dirname);
+        return res.status(500).send('فایل اصلی سیستم پیدا نشد.');
     }
 
     let content = fs.readFileSync(indexPath, 'utf8');
     
-    // تزریق کلیدهای API از متغیرهای محیطی پنل
+    // تزریق کلیدها از متغیرهای محیطی هاست
     const apiKey = process.env.API_KEY || "";
     const smsKey = process.env.SMS_API_KEY || "";
     
@@ -42,9 +42,10 @@ app.get('*', (req, res) => {
         `window.process = { env: { API_KEY: "${apiKey}", SMS_API_KEY: "${smsKey}" } };`
     );
     
+    res.setHeader('Content-Type', 'text/html');
     res.send(content);
 });
 
 app.listen(PORT, () => {
-    console.log(`Nikjoo Market is running on port ${PORT}`);
+    console.log(`Nikjoo Market is active on port ${PORT}`);
 });
