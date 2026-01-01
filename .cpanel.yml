@@ -1,5 +1,6 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/nikjooma/public_html
-    - /bin/cp -R * $DEPLOYPATH
+    - export DEPLOYPATH=/home/nikjooma/nikjoo_app
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/rsync -avz --exclude '.git' --exclude 'node_modules' --exclude '.cpanel.yml' * $DEPLOYPATH

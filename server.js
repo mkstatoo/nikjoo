@@ -1,4 +1,3 @@
-
 const express = require('express');
 const path = require('path');
 const compression = require('compression');
@@ -9,34 +8,32 @@ const PORT = process.env.PORT || 3000;
 
 app.use(compression());
 
-// تعریف دقیق MIME Type‌ها قبل از سرو فایل‌های استاتیک
-express.static.mime.define({
-    'application/javascript': ['tsx', 'ts', 'jsx']
+// تنظیم هدر صحیح برای ماژول‌های جاوااسکریپت و تایپ‌اسکریپت
+app.use((req, res, next) => {
+    const ext = path.extname(req.url);
+    if (['.tsx', '.ts', '.jsx', '.js'].includes(ext)) {
+        res.setHeader('Content-Type', 'text/javascript');
+    }
+    next();
 });
 
-// سرو فایل‌های استاتیک با تنظیمات هدر صحیح
-app.use(express.static(__dirname, {
-    setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.tsx') || filePath.endsWith('.ts')) {
-            res.setHeader('Content-Type', 'application/javascript');
-        }
-    }
-}));
+// سرو فایل‌های استاتیک
+app.use(express.static(__dirname));
 
 app.get('*', (req, res) => {
-    // اگر درخواست برای یک فایل فیزیکی است که وجود ندارد، 404 بده
+    // جلوگیری از روتینگ اشتباه برای فایل‌های فیزیکی
     if (path.extname(req.url)) {
         return res.status(404).send('Not Found');
     }
 
     const indexPath = path.join(__dirname, 'index.html');
     if (!fs.existsSync(indexPath)) {
-        return res.status(500).send('Critical Error: index.html not found');
+        return res.status(500).send('Critical Error: index.html not found in ' + __dirname);
     }
 
     let content = fs.readFileSync(indexPath, 'utf8');
     
-    // تزریق کلیدهای API
+    // تزریق کلیدهای API از متغیرهای محیطی پنل
     const apiKey = process.env.API_KEY || "";
     const smsKey = process.env.SMS_API_KEY || "";
     
