@@ -8,19 +8,22 @@ const PORT = process.env.PORT || 3000;
 
 app.use(compression());
 
-// اولویت با فایل‌های استاتیک بیلد شده در پوشه dist است
-app.use(express.static(path.join(__dirname, 'dist')));
+// آدرس پوشه خروجی Vite
+const distPath = path.join(__dirname, 'dist');
+
+// سرو فایل‌های استاتیک (JS, CSS, Images)
+app.use(express.static(distPath));
 
 app.get('*', (req, res) => {
-    // مسیر فایل index.html در پوشه dist بعد از بیلد
-    const indexPath = path.join(__dirname, 'dist', 'index.html');
+    const indexPath = path.join(distPath, 'index.html');
     
-    // اگر فایل بیلد شده هنوز وجود ندارد (اولین بار)
+    // اگر فایل بیلد هنوز وجود ندارد (اولین اجرا)
     if (!fs.existsSync(indexPath)) {
         return res.status(200).send(`
-            <div style="font-family:sans-serif; text-align:center; padding: 50px;">
-                <h2>Nikjoo Market</h2>
-                <p>Application is building... Please run <b>npm run build</b> or wait a moment.</p>
+            <div style="font-family:sans-serif; text-align:center; padding: 50px; direction:rtl;">
+                <h2 style="color:#d91b1b">نیکجو مارکت</h2>
+                <p>سیستم در حال آماده‌سازی است...</p>
+                <p style="font-size:13px; color:#666">لطفاً در ترمینال دستور <b>npm run build</b> را اجرا کنید.</p>
                 <script>setTimeout(() => location.reload(), 5000);</script>
             </div>
         `);
@@ -28,10 +31,11 @@ app.get('*', (req, res) => {
 
     let content = fs.readFileSync(indexPath, 'utf8');
     
-    // تزریق متغیرهای محیطی از سی‌پنل به فایل index.html بیلد شده
+    // تزریق کلیدها از Environment Variables به فایل HTML بیلد شده
     const apiKey = process.env.API_KEY || "";
     const smsKey = process.env.SMS_API_KEY || "";
     
+    // جایگزینی فیلد خالی با مقادیر واقعی در تگ اسکریپت
     content = content.replace(
         'window.process = { env: { API_KEY: "", SMS_API_KEY: "" } };',
         `window.process = { env: { API_KEY: "${apiKey}", SMS_API_KEY: "${smsKey}" } };`
@@ -42,5 +46,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Production server is running on port ${PORT}`);
+    console.log(`Nikjoo Market is running on port ${PORT}`);
 });
