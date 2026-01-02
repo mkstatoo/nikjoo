@@ -8,36 +8,42 @@ const PORT = process.env.PORT || 3000;
 
 app.use(compression());
 
-// تنظیم دستی MIME Type قبل از ارسال فایل‌ها به مرورگر
-// این بخش حیاتی است تا مرورگر فایل‌های .tsx را به عنوان اسکریپت جاوااسکریپت معتبر بشناسد
+// میان‌افزار سفارشی برای تضمین ارسال MIME Type درست قبل از هر چیز دیگری
+app.use((req, res, next) => {
+    const ext = path.extname(req.url);
+    if (ext === '.tsx' || ext === '.ts' || ext === '.jsx') {
+        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+    }
+    next();
+});
+
+// تنظیمات هدر برای Express Static
 const staticOptions = {
     setHeaders: (res, filePath) => {
         const ext = path.extname(filePath);
         if (ext === '.tsx' || ext === '.ts' || ext === '.jsx') {
-            // تنظیم هدر استاندارد جاوااسکریپت برای فایل‌های تایپ‌اسکریپت
             res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+            res.setHeader('X-Content-Type-Options', 'nosniff');
         }
     }
 };
 
-// سرو فایل‌های استاتیک (تصاویر، استایل‌ها و اسکریپت‌ها)
 app.use(express.static(__dirname, staticOptions));
 
-// مدیریت مسیرهای سمت کلاینت (SPA) و تزریق کلیدهای API
 app.get('*', (req, res) => {
-    // اگر درخواستی برای فایلی بود که وجود نداشت، به جای index.html خطای ۴۰۴ بدهد
-    if (path.extname(req.url) && !req.url.endsWith('.html')) {
-        return res.status(404).send('File Not Found');
+    // اگر درخواست فایل است (مثلاً عکس یا اسکریپت) و پیدا نشده، ۴۰۴ بده
+    if (path.extname(req.url)) {
+        return res.status(404).send('Not Found');
     }
 
     const indexPath = path.join(__dirname, 'index.html');
     if (!fs.existsSync(indexPath)) {
-        return res.status(500).send('Critical Error: index.html missing');
+        return res.status(500).send('Critical Error: index.html not found in root.');
     }
 
     let content = fs.readFileSync(indexPath, 'utf8');
     
-    // تزریق کلیدهای امنیتی از متغیرهای محیطی سی‌پنل
+    // تزریق متغیرهای محیطی از سی‌پنل به کلاینت
     const apiKey = process.env.API_KEY || "";
     const smsKey = process.env.SMS_API_KEY || "";
     
@@ -51,5 +57,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Nikjoo server is live on port ${PORT}`);
+    console.log(`Nikjoo Market is running on port ${PORT}`);
 });
