@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface LaunchGuideProps {
@@ -65,7 +64,7 @@ const LaunchGuide: React.FC<LaunchGuideProps> = ({ onBack }) => {
              <p className="text-xs text-blue-800 leading-6 mb-6">برای اتصال دامنه اختصاصی به Netlify، رکوردهای زیر را تنظیم کنید:</p>
              <div className="bg-white p-4 rounded-2xl border border-blue-200 overflow-x-auto">
                 <code className="text-xs font-mono block text-gray-600 whitespace-nowrap">A Record: 75.2.60.5</code>
-                <code className="text-xs font-mono block text-gray-600 whitespace-nowrap mt-2">CNAME: nikjoomarket.ir -> your-site.netlify.app</code>
+                <code className="text-xs font-mono block text-gray-600 whitespace-nowrap mt-2">CNAME: nikjoomarket.ir {"->"} your-site.netlify.app</code>
              </div>
           </div>
         )}
