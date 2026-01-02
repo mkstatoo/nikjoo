@@ -1,15 +1,23 @@
-
 {
   "name": "nikjoo-market",
-  "version": "1.1.0",
-  "description": "Nikjoo Marketplace - Production Ready",
+  "version": "1.2.0",
+  "description": "Nikjoo Marketplace - Production Ready with Vite",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "vite build",
+    "dev": "vite"
   },
   "dependencies": {
     "express": "^4.18.2",
     "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
