@@ -182,6 +182,7 @@ const App: React.FC = () => {
             case 'profile':
               return <Profile 
                 currentUser={currentUser}
+                setCurrentUser={setCurrentUser}
                 allListings={allListings}
                 banners={banners}
                 setBanners={setBanners}

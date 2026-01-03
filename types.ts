@@ -1,4 +1,13 @@
 
+export interface UserNotification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  type: 'info' | 'success' | 'warning';
+}
+
 export interface User {
   id: string;
   name: string;
@@ -9,7 +18,8 @@ export interface User {
   phone?: string;
   isVerified?: boolean;
   preferences: UserPreferences;
-  blockedUsers?: string[]; // لیست آی‌دی کاربران مسدود شده
+  blockedUsers?: string[];
+  notifications_list?: UserNotification[];
 }
 
 export interface UserPreferences {
@@ -36,7 +46,7 @@ export interface Listing {
   isModerated?: boolean;
   views: number;
   status: 'active' | 'sold' | 'expired' | 'pending';
-  reportsCount?: number; // تعداد گزارش‌های تخلف
+  reportsCount?: number;
 }
 
 export interface SavedSearch {

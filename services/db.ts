@@ -1,24 +1,52 @@
 
-import { Listing, User, RecentSearch, UserPreferences } from '../types';
+import { Listing, User, RecentSearch, UserPreferences, UserNotification } from '../types';
 import { MOCK_LISTINGS, MOCK_USERS } from '../constants';
 
-/**
- * Nikjoo Advanced Database Service
- * این کلاس نقش بک‌اِند را ایفا می‌کند و تمام عملیات‌ها را به صورت Async انجام می‌دهد.
- */
 class DatabaseService {
   private STORAGE_KEYS = {
     LISTINGS: 'nikjoo_listings',
     USERS: 'nikjoo_users',
     BOOKMARKS: 'nikjoo_bookmarks',
     HISTORY: 'nikjoo_search_history',
-    PREFS: 'nikjoo_user_preferences'
+    PREFS: 'nikjoo_user_preferences',
+    CURRENT_USER: 'nikjoo_user'
   };
 
-  // --- Users Management ---
   async getUsers(): Promise<User[]> {
     const data = localStorage.getItem(this.STORAGE_KEYS.USERS);
     return data ? JSON.parse(data) : MOCK_USERS;
+  }
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
+    const users = await this.getUsers();
+    const index = users.findIndex(u => u.id === userId);
+    if (index === -1) {
+      // If it's the current user not in mock users (new user)
+      const currentUserData = localStorage.getItem(this.STORAGE_KEYS.CURRENT_USER);
+      if (currentUserData) {
+        const currentUser = JSON.parse(currentUserData);
+        if (currentUser.id === userId) {
+          const updated = { ...currentUser, ...updates };
+          localStorage.setItem(this.STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
+          return updated;
+        }
+      }
+      return null;
+    }
+    
+    users[index] = { ...users[index], ...updates };
+    localStorage.setItem(this.STORAGE_KEYS.USERS, JSON.stringify(users));
+    
+    // Also update current session if it's the same user
+    const currentUserData = localStorage.getItem(this.STORAGE_KEYS.CURRENT_USER);
+    if (currentUserData) {
+      const currentUser = JSON.parse(currentUserData);
+      if (currentUser.id === userId) {
+        localStorage.setItem(this.STORAGE_KEYS.CURRENT_USER, JSON.stringify(users[index]));
+      }
+    }
+    
+    return users[index];
   }
 
   async deleteUser(userId: string): Promise<void> {
@@ -26,13 +54,11 @@ class DatabaseService {
     const updatedUsers = users.filter(u => u.id !== userId);
     localStorage.setItem(this.STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     
-    // پاکسازی آگهی‌های کاربر حذف شده (Integrity Check)
     const listings = await this.getListings();
     const updatedListings = listings.filter(l => l.seller.id !== userId);
     localStorage.setItem(this.STORAGE_KEYS.LISTINGS, JSON.stringify(updatedListings));
   }
 
-  // --- Listings Management ---
   async getListings(): Promise<Listing[]> {
     const data = localStorage.getItem(this.STORAGE_KEYS.LISTINGS);
     return data ? JSON.parse(data) : MOCK_LISTINGS;
@@ -55,16 +81,21 @@ class DatabaseService {
     localStorage.setItem(this.STORAGE_KEYS.LISTINGS, JSON.stringify(updated));
   }
 
-  async updateListingStatus(id: string, status: Listing['status']): Promise<void> {
-    const listings = await this.getListings();
-    const updated = listings.map(l => l.id === id ? { ...l, status } : l);
-    localStorage.setItem(this.STORAGE_KEYS.LISTINGS, JSON.stringify(updated));
-  }
-
-  // --- Search History ---
   async getSearchHistory(): Promise<RecentSearch[]> {
     const data = localStorage.getItem(this.STORAGE_KEYS.HISTORY);
     return data ? JSON.parse(data) : [];
+  }
+
+  // Fix: Add deleteHistoryItem method to satisfy usage in Bookmarks.tsx (Error line 38)
+  async deleteHistoryItem(id: string): Promise<void> {
+    const history = await this.getSearchHistory();
+    const updated = history.filter(h => h.id !== id);
+    localStorage.setItem(this.STORAGE_KEYS.HISTORY, JSON.stringify(updated));
+  }
+
+  // Fix: Add clearHistory method to satisfy usage in Bookmarks.tsx (Error line 43)
+  async clearHistory(): Promise<void> {
+    localStorage.setItem(this.STORAGE_KEYS.HISTORY, JSON.stringify([]));
   }
 
   async addSearchQuery(query: string): Promise<void> {
@@ -75,16 +106,6 @@ class DatabaseService {
     localStorage.setItem(this.STORAGE_KEYS.HISTORY, JSON.stringify([newEntry, ...filtered].slice(0, 15)));
   }
 
-  async deleteHistoryItem(id: string): Promise<void> {
-    const history = await this.getSearchHistory();
-    localStorage.setItem(this.STORAGE_KEYS.HISTORY, JSON.stringify(history.filter(h => h.id !== id)));
-  }
-
-  async clearHistory(): Promise<void> {
-    localStorage.removeItem(this.STORAGE_KEYS.HISTORY);
-  }
-
-  // --- User Preferences & Bookmarks ---
   async getBookmarks(): Promise<string[]> {
     const data = localStorage.getItem(this.STORAGE_KEYS.BOOKMARKS);
     return data ? JSON.parse(data) : [];
@@ -105,6 +126,14 @@ class DatabaseService {
   setUserPreferences(prefs: Partial<UserPreferences>): void {
     const current = this.getUserPreferences();
     localStorage.setItem(this.STORAGE_KEYS.PREFS, JSON.stringify({ ...current, ...prefs }));
+  }
+
+  async getNotifications(): Promise<UserNotification[]> {
+    return [
+      { id: '1', title: 'به نیکجو خوش آمدید!', message: 'از اینکه نیکجو را برای معاملات خود انتخاب کردید سپاسگزاریم.', timestamp: '۱ ساعت پیش', isRead: false, type: 'info' },
+      { id: '2', title: 'آگهی تایید شد', message: 'آگهی شما با موفقیت بررسی و در لیست انتشار قرار گرفت.', timestamp: '۲ ساعت پیش', isRead: true, type: 'success' },
+      { id: '3', title: 'پیام جدید', message: 'شما یک پیام جدید در بخش چت دارید.', timestamp: 'دیروز', isRead: true, type: 'info' }
+    ];
   }
 }
 
