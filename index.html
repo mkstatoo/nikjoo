@@ -14,6 +14,11 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;400;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet Map Assets -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
     <style>
         body { font-family: 'Vazirmatn', sans-serif; background-color: #ffffff; margin: 0; padding: 0; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -22,6 +27,11 @@
             50% { filter: drop-shadow(0 0 25px rgba(217, 27, 27, 0.5)); transform: scale(1.05); }
         }
         .animate-logo { animation: logo-glow 3s infinite ease-in-out; }
+        
+        /* Custom Map Styles */
+        #map-container { height: 100%; width: 100%; z-index: 1; }
+        .leaflet-control-zoom { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; border-radius: 12px !important; overflow: hidden; }
+        .leaflet-control-zoom-in, .leaflet-control-zoom-out { background-color: white !important; color: #374151 !important; font-weight: bold !important; border: none !important; }
     </style>
 <script type="importmap">
 {

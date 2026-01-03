@@ -4,6 +4,8 @@ import { CATEGORIES, SUB_CATEGORIES } from '../constants.tsx';
 import { suggestListingOptimization, moderateContent } from '../services/gemini.ts';
 import { User, Listing } from '../types.ts';
 
+declare var L: any; // Leaflet Global
+
 interface InputWrapperProps {
   label: string;
   children?: React.ReactNode;
@@ -41,6 +43,49 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Map Refs
+  const mapRef = useRef<any>(null);
+  const mapElementRef = useRef<HTMLDivElement>(null);
+  const [isMapMoving, setIsMapMoving] = useState(false);
+
+  useEffect(() => {
+    if (showMapModal && mapElementRef.current && !mapRef.current) {
+      // Initialize Map
+      const tehranCoords = [35.6892, 51.3890];
+      mapRef.current = L.map(mapElementRef.current, {
+        zoomControl: true,
+        attributionControl: false
+      }).setView(tehranCoords, 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      }).addTo(mapRef.current);
+
+      mapRef.current.on('movestart', () => setIsMapMoving(true));
+      mapRef.current.on('moveend', () => {
+        setIsMapMoving(false);
+        const center = mapRef.current.getCenter();
+        // Here you would typically call a reverse geocoder
+        // For this version, we keep the user's selected city or default to "محدوده انتخابی"
+        console.log("New coordinates:", center.lat, center.lng);
+      });
+
+      // Try to get user location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          mapRef.current.setView([pos.coords.latitude, pos.coords.longitude], 15);
+        });
+      }
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [showMapModal]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -119,6 +164,11 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
     onAddListing(newAd);
     alert("آگهی شما با موفقیت ثبت شد.");
     onComplete();
+  };
+
+  const handleConfirmLocation = () => {
+    // Logic to set a more granular location name could go here
+    setShowMapModal(false);
   };
 
   return (
@@ -233,18 +283,48 @@ const PostAd: React.FC<PostAdProps> = ({ onComplete, onAddListing, currentUser, 
 
       {showMapModal && (
         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-           <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden flex flex-col h-[70vh] text-right">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                 <h3 className="font-black">تعیین محدوده آگهی</h3>
-                 <button onClick={() => setShowMapModal(false)} className="text-sm font-bold text-gray-400">بستن</button>
+           <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden flex flex-col h-[75vh] text-right relative">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+                 <h3 className="font-black text-gray-900">تعیین محدوده آگهی</h3>
+                 <button onClick={() => setShowMapModal(false)} className="text-sm font-black text-gray-400 hover:text-red-700 transition-colors">بستن</button>
               </div>
-              <div className="flex-1 bg-gray-100 relative">
-                 <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-8 h-8 bg-red-700 rounded-full border-4 border-white shadow-xl animate-bounce"></div>
+              
+              <div className="flex-1 relative bg-gray-50 overflow-hidden">
+                 {/* Map Container */}
+                 <div ref={mapElementRef} id="map-container"></div>
+                 
+                 {/* Fixed Center Pin */}
+                 <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[5] pointer-events-none transition-transform duration-200 ${isMapMoving ? '-translate-y-[120%] scale-110' : ''}`}>
+                    <div className="relative">
+                       <div className="w-10 h-10 bg-red-700 rounded-full border-4 border-white shadow-2xl flex items-center justify-center">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                       </div>
+                       <div className="w-2 h-1 bg-black/20 rounded-full mx-auto mt-1 blur-[1px]"></div>
+                    </div>
                  </div>
+
+                 {/* My Location Button */}
+                 <button 
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition((pos) => {
+                        mapRef.current.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                      });
+                    }
+                  }}
+                  className="absolute bottom-6 left-6 z-[10] bg-white p-3 rounded-2xl shadow-xl border border-gray-100 text-gray-700 hover:text-red-700 active:scale-90 transition-all"
+                 >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth="2"/></svg>
+                 </button>
               </div>
-              <div className="p-6">
-                 <button onClick={() => setShowMapModal(false)} className="w-full bg-red-700 text-white font-black py-4 rounded-2xl">تایید موقعیت</button>
+
+              <div className="p-6 bg-white border-t border-gray-100">
+                 <button 
+                  onClick={handleConfirmLocation} 
+                  className="w-full bg-red-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-red-100 active:scale-95 transition-all"
+                 >
+                    تایید موقعیت برای آگهی
+                 </button>
               </div>
            </div>
         </div>
